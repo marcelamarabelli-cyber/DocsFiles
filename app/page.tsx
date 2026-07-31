@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import FolderGrid from "./components/FolderGrid";
 import UploadZone from "./components/UploadZone";
+import RequestCenter from "./components/RequestCenter";
 import {
   documentFolders,
   type Client,
@@ -10,10 +11,13 @@ import {
   type ClientStatus,
   type ClientType,
   type DocumentFolderId,
+  type DocumentRequest,
   type StoredDocument,
 } from "./types/client";
 import {
+  loadDocumentRequests,
   loadDocuments,
+  saveDocumentRequests,
   saveDocuments,
 } from "./lib/storage";
 
@@ -137,6 +141,9 @@ export default function Home() {
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
   const [openFolderId, setOpenFolderId] =
     useState<DocumentFolderId | null>(null);
+  const [documentRequests, setDocumentRequests] =
+    useState<DocumentRequest[]>([]);
+  const [showRequestCenter, setShowRequestCenter] = useState(false);
 
   useEffect(() => {
     const savedClients = window.localStorage.getItem("docsfiles-clients");
@@ -160,7 +167,12 @@ export default function Home() {
 
   useEffect(() => {
     setDocuments(loadDocuments());
+    setDocumentRequests(loadDocumentRequests());
   }, []);
+
+  useEffect(() => {
+    saveDocumentRequests(documentRequests);
+  }, [documentRequests]);
 
   useEffect(() => {
     saveDocuments(documents);
@@ -970,11 +982,24 @@ export default function Home() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "1fr auto",
+                  gridTemplateColumns: "1fr 1fr auto",
                   gap: "10px",
                   marginTop: "17px",
                 }}
               >
+                <button
+                  type="button"
+                  onClick={() => setShowRequestCenter(true)}
+                  style={{
+                    ...buttonBase,
+                    padding: "12px",
+                    background: "#172033",
+                    color: "white",
+                  }}
+                >
+                  📋 Request Documents
+                </button>
+
                 <button
                   type="button"
                   onClick={() => {
@@ -1335,6 +1360,15 @@ export default function Home() {
           </form>
         </div>
       )}
+      {selectedClient && showRequestCenter && (
+        <RequestCenter
+          client={selectedClient}
+          requests={documentRequests}
+          onChange={setDocumentRequests}
+          onClose={() => setShowRequestCenter(false)}
+        />
+      )}
+
       {selectedClient && openFolderId && (
         <UploadZone
           clientId={selectedClient.id}

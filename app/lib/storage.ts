@@ -82,3 +82,35 @@ export function createDocumentId() {
 
   return `document-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+import type { DocumentRequest } from "../types/client";
+
+const REQUESTS_KEY = "docsfiles-document-requests";
+
+export function loadDocumentRequests(): DocumentRequest[] {
+  if (!isBrowser()) {
+    return [];
+  }
+
+  try {
+    const saved = window.localStorage.getItem(REQUESTS_KEY);
+
+    if (!saved) {
+      return [];
+    }
+
+    const parsed = JSON.parse(saved);
+
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveDocumentRequests(requests: DocumentRequest[]) {
+  if (!isBrowser()) {
+    return;
+  }
+
+  window.localStorage.setItem(REQUESTS_KEY, JSON.stringify(requests));
+}

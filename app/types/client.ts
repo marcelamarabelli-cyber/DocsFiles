@@ -174,3 +174,48 @@ export const documentFolders: DocumentFolder[] = [
     subtitle: "Client questions, notes and correspondence",
   },
 ];
+
+export type RequestStatus =
+  | "Waiting"
+  | "Uploaded"
+  | "Under Review"
+  | "Accepted"
+  | "Replace Requested";
+
+export type DocumentRequest = {
+  id: string;
+  clientId: string;
+  title: string;
+  category: DocumentFolderId;
+  requested: boolean;
+  status: RequestStatus;
+  note: string;
+  createdAt: string;
+};
+
+export const standardDocumentRequests: Array<{
+  title: string;
+  category: DocumentFolderId;
+}> = [
+  { title: "Driver License or State Identification", category: "client-intake" },
+  { title: "Social Security Cards", category: "client-intake" },
+  { title: "Prior-Year Tax Return", category: "client-intake" },
+  { title: "W-2 Wage Statements", category: "income" },
+  { title: "1099-INT Interest Statements", category: "income" },
+  { title: "1099-DIV Dividend Statements", category: "income" },
+  { title: "1099-R Retirement Statements", category: "income" },
+  { title: "SSA-1099 Social Security Statement", category: "income" },
+  { title: "K-1 Statements", category: "income" },
+  { title: "Brokerage and Investment Statements", category: "income" },
+  { title: "Mortgage Interest Form 1098", category: "deductions" },
+  { title: "Property Tax Statements", category: "deductions" },
+  { title: "Charitable Donation Records", category: "charitable-donations" },
+  { title: "Medical and Dental Expenses", category: "medical" },
+  { title: "Business Income and Expenses", category: "bookkeeping" },
+  { title: "Business Mileage Log", category: "mileage" },
+  { title: "Rental Income and Expenses", category: "rental-properties" },
+  { title: "Rental Property Closing Statements", category: "rental-properties" },
+  { title: "Bank Statements", category: "bank-statements" },
+  { title: "Signed Consent and Authorization Forms", category: "e-signatures" },
+  { title: "Other Supporting Documents", category: "receipts" },
+];
