@@ -977,11 +977,10 @@ export default function Home() {
               >
                 <button
                   type="button"
-                  onClick={() =>
-                    window.alert(
-                      "The secure client sharing link will be added in our next major build.",
-                    )
-                  }
+                  onClick={() => {
+                    const portalUrl = `${window.location.origin}/portal/${selectedClient.id}`;
+                    window.open(portalUrl, "_blank", "noopener,noreferrer");
+                  }}
                   style={{
                     ...buttonBase,
                     padding: "12px",
