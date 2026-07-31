@@ -20,6 +20,10 @@ import {
   saveDocumentRequests,
   saveDocuments,
 } from "./lib/storage";
+import {
+  findMatchingRequest,
+  statusForReviewedDocument,
+} from "./lib/requestMatcher";
 
 const currentTaxYear = String(new Date().getFullYear() - 1);
 
@@ -1383,15 +1387,50 @@ export default function Home() {
           onAddDocuments={(newDocuments) =>
             setDocuments((current) => [...newDocuments, ...current])
           }
-          onUpdateDocument={(documentId, updates) =>
+          onUpdateDocument={(documentId, updates) => {
+            const existingDocument = documents.find(
+              (document) => document.id === documentId,
+            );
+
             setDocuments((current) =>
               current.map((document) =>
                 document.id === documentId
                   ? { ...document, ...updates }
                   : document,
               ),
-            )
-          }
+            );
+
+            if (
+              existingDocument &&
+              typeof updates.reviewed === "boolean"
+            ) {
+              setDocumentRequests((current) => {
+                const matchingRequest = findMatchingRequest(
+                  existingDocument.name,
+                  existingDocument.folderId,
+                  current.filter(
+                    (request) =>
+                      request.clientId === existingDocument.clientId,
+                  ),
+                );
+
+                if (!matchingRequest) {
+                  return current;
+                }
+
+                const nextStatus = statusForReviewedDocument(
+                  existingDocument,
+                  updates.reviewed,
+                );
+
+                return current.map((request) =>
+                  request.id === matchingRequest.id
+                    ? { ...request, status: nextStatus }
+                    : request,
+                );
+              });
+            }
+          }}
           onDeleteDocument={(documentId) =>
             setDocuments((current) =>
               current.filter((document) => document.id !== documentId),

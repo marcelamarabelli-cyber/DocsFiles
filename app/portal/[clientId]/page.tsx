@@ -18,6 +18,7 @@ import {
   saveDocumentRequests,
   saveDocuments,
 } from "../../lib/storage";
+import { findMatchingRequest } from "../../lib/requestMatcher";
 
 function getClientName(client: Client) {
   if (client.clientType === "Business" && client.businessName.trim()) {
@@ -483,24 +484,41 @@ export default function ClientPortalPage() {
               document.folderId === openFolderId,
           )}
           onAddDocuments={(newDocuments) => {
+            const clientDocuments = newDocuments.map((document) => ({
+              ...document,
+              uploadedBy: "Client" as const,
+            }));
+
             setDocuments((current) => [
-              ...newDocuments.map((document) => ({
-                ...document,
-                uploadedBy: "Client" as const,
-              })),
+              ...clientDocuments,
               ...current,
             ]);
 
-            setDocumentRequests((current) =>
-              current.map((request) =>
-                request.clientId === client.id &&
-                request.requested &&
-                request.category === openFolderId &&
-                request.status === "Waiting"
-                  ? { ...request, status: "Uploaded" }
-                  : request,
-              ),
-            );
+            setDocumentRequests((current) => {
+              let updatedRequests = [...current];
+
+              for (const document of clientDocuments) {
+                const clientRequests = updatedRequests.filter(
+                  (request) => request.clientId === client.id,
+                );
+
+                const match = findMatchingRequest(
+                  document.name,
+                  document.folderId,
+                  clientRequests,
+                );
+
+                if (match) {
+                  updatedRequests = updatedRequests.map((request) =>
+                    request.id === match.id
+                      ? { ...request, status: "Uploaded" }
+                      : request,
+                  );
+                }
+              }
+
+              return updatedRequests;
+            });
           }}
           onUpdateDocument={(documentId, updates) =>
             setDocuments((current) =>
