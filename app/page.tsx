@@ -1,42 +1,21 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-
-type ClientType = "Individual" | "Business";
-type ClientStatus =
-  | "New"
-  | "Waiting for Documents"
-  | "Documents Received"
-  | "In Preparation"
-  | "Ready for Review"
-  | "Ready to File"
-  | "Completed";
-
-type Client = {
-  id: string;
-  primaryName: string;
-  spouseName: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  clientType: ClientType;
-  taxYear: string;
-  status: ClientStatus;
-  notes: string;
-  createdAt: string;
-};
-
-type ClientForm = {
-  primaryName: string;
-  spouseName: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  clientType: ClientType;
-  taxYear: string;
-  status: ClientStatus;
-  notes: string;
-};
+import FolderGrid from "./components/FolderGrid";
+import UploadZone from "./components/UploadZone";
+import {
+  documentFolders,
+  type Client,
+  type ClientForm,
+  type ClientStatus,
+  type ClientType,
+  type DocumentFolderId,
+  type StoredDocument,
+} from "./types/client";
+import {
+  loadDocuments,
+  saveDocuments,
+} from "./lib/storage";
 
 const currentTaxYear = String(new Date().getFullYear() - 1);
 
@@ -79,16 +58,7 @@ const statusOptions: ClientStatus[] = [
   "Completed",
 ];
 
-const folderItems = [
-  { icon: "📥", title: "Client Intake", subtitle: "Questionnaire and profile" },
-  { icon: "💼", title: "Income", subtitle: "W-2, 1099, K-1 and retirement" },
-  { icon: "🏠", title: "Deductions", subtitle: "Mortgage, taxes and donations" },
-  { icon: "🧾", title: "Expenses", subtitle: "Business and rental expenses" },
-  { icon: "🚗", title: "Mileage", subtitle: "Business vehicle records" },
-  { icon: "🏢", title: "Rental Properties", subtitle: "Income and property files" },
-  { icon: "✍️", title: "E-Signatures", subtitle: "Consent and authorization" },
-  { icon: "📬", title: "Final Return", subtitle: "Completed tax return copies" },
-];
+
 
 function getDisplayName(client: Client) {
   if (client.clientType === "Business" && client.businessName.trim()) {
@@ -164,6 +134,9 @@ export default function Home() {
   const [showNewClient, setShowNewClient] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
+  const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [openFolderId, setOpenFolderId] =
+    useState<DocumentFolderId | null>(null);
 
   useEffect(() => {
     const savedClients = window.localStorage.getItem("docsfiles-clients");
@@ -184,6 +157,14 @@ export default function Home() {
   useEffect(() => {
     window.localStorage.setItem("docsfiles-clients", JSON.stringify(clients));
   }, [clients]);
+
+  useEffect(() => {
+    setDocuments(loadDocuments());
+  }, []);
+
+  useEffect(() => {
+    saveDocuments(documents);
+  }, [documents]);
 
   const filteredClients = useMemo(() => {
     const searchText = search.trim().toLowerCase();
@@ -948,58 +929,12 @@ export default function Home() {
                 </select>
               </div>
 
-              <div
-                style={{
-                  marginTop: "17px",
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: "10px",
-                }}
-              >
-                {folderItems.map((folder) => (
-                  <button
-                    key={folder.title}
-                    type="button"
-                    onClick={() =>
-                      window.alert(
-                        `${folder.title} folder is prepared for our next build.`,
-                      )
-                    }
-                    style={{
-                      border: "1px solid #dbe5f0",
-                      borderRadius: "13px",
-                      padding: "13px",
-                      background: "#f8fafc",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      color: "#172033",
-                    }}
-                  >
-                    <div style={{ fontSize: "22px" }}>{folder.icon}</div>
-
-                    <div
-                      style={{
-                        fontWeight: 800,
-                        fontSize: "12px",
-                        marginTop: "7px",
-                      }}
-                    >
-                      {folder.title}
-                    </div>
-
-                    <div
-                      style={{
-                        color: "#64748b",
-                        fontSize: "10px",
-                        marginTop: "3px",
-                        lineHeight: 1.35,
-                      }}
-                    >
-                      {folder.subtitle}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <FolderGrid
+                folders={documentFolders}
+                documents={documents}
+                clientId={selectedClient.id}
+                onOpenFolder={setOpenFolderId}
+              />
 
               <div
                 style={{
@@ -1401,6 +1336,29 @@ export default function Home() {
           </form>
         </div>
       )}
+      {selectedClient && openFolderId && (
+        <UploadZone
+          clientId={selectedClient.id}
+          folder={
+            documentFolders.find((folder) => folder.id === openFolderId)!
+          }
+          documents={documents.filter(
+            (document) =>
+              document.clientId === selectedClient.id &&
+              document.folderId === openFolderId,
+          )}
+          onAddDocuments={(newDocuments) =>
+            setDocuments((current) => [...newDocuments, ...current])
+          }
+          onDeleteDocument={(documentId) =>
+            setDocuments((current) =>
+              current.filter((document) => document.id !== documentId),
+            )
+          }
+          onClose={() => setOpenFolderId(null)}
+        />
+      )}
+
     </main>
   );
 }
