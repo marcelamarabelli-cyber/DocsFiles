@@ -15,15 +15,50 @@ type UploadZoneProps = {
   folder: DocumentFolder;
   documents: StoredDocument[];
   onAddDocuments: (documents: StoredDocument[]) => void;
+  onUpdateDocument: (
+    documentId: string,
+    updates: Partial<StoredDocument>,
+  ) => void;
   onDeleteDocument: (documentId: string) => void;
   onClose: () => void;
 };
+
+function getFileIcon(document: StoredDocument) {
+  const lowerName = document.name.toLowerCase();
+
+  if (document.type === "application/pdf" || lowerName.endsWith(".pdf")) {
+    return "📕";
+  }
+
+  if (document.type.startsWith("image/")) {
+    return "🖼️";
+  }
+
+  if (
+    lowerName.endsWith(".xlsx") ||
+    lowerName.endsWith(".xls") ||
+    lowerName.endsWith(".csv")
+  ) {
+    return "📊";
+  }
+
+  if (lowerName.endsWith(".doc") || lowerName.endsWith(".docx")) {
+    return "📝";
+  }
+
+  if (lowerName.endsWith(".zip")) {
+    return "🗜️";
+  }
+
+  return "📄";
+}
 
 export default function UploadZone({
   clientId,
   folder,
   documents,
   onAddDocuments,
+  onUpdateDocument,
   onDeleteDocument,
   onClose,
 }: UploadZoneProps) {
@@ -45,8 +80,11 @@ export default function UploadZone({
       type: file.type || "Unknown file type",
       size: file.size,
       uploadedAt: new Date().toISOString(),
+      uploadedBy: "Preparer",
+      reviewed: false,
       previewUrl:
-        file.type.startsWith("image/") || file.type === "application/pdf"
+        file.type.startsWith("image/") ||
+        file.type === "application/pdf"
           ? URL.createObjectURL(file)
           : undefined,
     }));
@@ -71,15 +109,48 @@ export default function UploadZone({
     }
   }
 
-  function openDocument(document: StoredDocument) {
+  function previewDocument(document: StoredDocument) {
     if (document.previewUrl) {
-      window.open(document.previewUrl, "_blank", "noopener,noreferrer");
+      window.open(
+        document.previewUrl,
+        "_blank",
+        "noopener,noreferrer",
+      );
       return;
     }
 
     window.alert(
-      "This file is listed in DocsFiles, but its full preview will be available after cloud storage is connected.",
+      "This document was saved during an earlier browser session. Permanent preview and download will work after secure cloud storage is connected.",
     );
+  }
+
+  function downloadDocument(document: StoredDocument) {
+    if (!document.previewUrl) {
+      window.alert(
+        "Permanent downloads will work after secure cloud storage is connected.",
+      );
+      return;
+    }
+
+    const link = window.document.createElement("a");
+    link.href = document.previewUrl;
+    link.download = document.name;
+    link.click();
+  }
+
+  function renameDocument(document: StoredDocument) {
+    const newName = window.prompt(
+      "Enter the new document name:",
+      document.name,
+    );
+
+    if (!newName || !newName.trim()) {
+      return;
+    }
+
+    onUpdateDocument(document.id, {
+      name: newName.trim(),
+    });
   }
 
   return (
@@ -102,13 +173,14 @@ export default function UploadZone({
     >
       <section
         style={{
-          width: "min(920px, 100%)",
+          width: "min(980px, 100%)",
           maxHeight: "92vh",
           overflowY: "auto",
           background: "white",
           borderRadius: "22px",
           border: "1px solid #dbe5f0",
-          boxShadow: "0 32px 90px rgba(15, 23, 42, 0.34)",
+          boxShadow:
+            "0 32px 90px rgba(15, 23, 42, 0.34)",
         }}
       >
         <header
@@ -121,7 +193,13 @@ export default function UploadZone({
             gap: "16px",
           }}
         >
-          <div style={{ display: "flex", gap: "14px", alignItems: "center" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "14px",
+              alignItems: "center",
+            }}
+          >
             <div
               style={{
                 width: "52px",
@@ -149,11 +227,22 @@ export default function UploadZone({
                 Document Folder
               </div>
 
-              <h2 style={{ margin: "5px 0 3px", fontSize: "24px" }}>
+              <h2
+                style={{
+                  margin: "5px 0 3px",
+                  fontSize: "24px",
+                }}
+              >
                 {folder.title}
               </h2>
 
-              <p style={{ margin: 0, color: "#64748b", fontSize: "13px" }}>
+              <p
+                style={{
+                  margin: 0,
+                  color: "#64748b",
+                  fontSize: "13px",
+                }}
+              >
                 {folder.subtitle}
               </p>
             </div>
@@ -206,19 +295,26 @@ export default function UploadZone({
               border: isDragging
                 ? "3px dashed #6366f1"
                 : "2px dashed #94a3b8",
-              background: isDragging ? "#eef2ff" : "#f8fafc",
+              background: isDragging
+                ? "#eef2ff"
+                : "#f8fafc",
               borderRadius: "18px",
-              padding: "34px 22px",
+              padding: "30px 22px",
               textAlign: "center",
               cursor: "pointer",
               transition: "all 160ms ease",
             }}
           >
-            <div style={{ fontSize: "42px" }}>
+            <div style={{ fontSize: "40px" }}>
               {isDragging ? "📥" : "📤"}
             </div>
 
-            <h3 style={{ margin: "10px 0 6px", fontSize: "19px" }}>
+            <h3
+              style={{
+                margin: "9px 0 6px",
+                fontSize: "19px",
+              }}
+            >
               {isDragging
                 ? "Drop the files here"
                 : "Drag files here or click to upload"}
@@ -229,7 +325,6 @@ export default function UploadZone({
                 margin: 0,
                 color: "#64748b",
                 fontSize: "13px",
-                lineHeight: 1.55,
               }}
             >
               PDF, Word, Excel, CSV and image files are accepted.
@@ -242,11 +337,12 @@ export default function UploadZone({
                 fileInputRef.current?.click();
               }}
               style={{
-                marginTop: "16px",
+                marginTop: "15px",
                 padding: "11px 17px",
                 border: "none",
                 borderRadius: "11px",
-                background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                background:
+                  "linear-gradient(135deg, #2563eb, #7c3aed)",
                 color: "white",
                 cursor: "pointer",
                 fontWeight: 800,
@@ -266,7 +362,14 @@ export default function UploadZone({
             }}
           >
             <div>
-              <h3 style={{ margin: 0, fontSize: "18px" }}>Uploaded Files</h3>
+              <h3
+                style={{
+                  margin: 0,
+                  fontSize: "18px",
+                }}
+              >
+                Uploaded Files
+              </h3>
 
               <p
                 style={{
@@ -275,7 +378,8 @@ export default function UploadZone({
                   fontSize: "12px",
                 }}
               >
-                {documents.length} {documents.length === 1 ? "file" : "files"} in
+                {documents.length}{" "}
+                {documents.length === 1 ? "file" : "files"} in
                 this folder
               </p>
             </div>
@@ -285,7 +389,7 @@ export default function UploadZone({
             {documents.length === 0 ? (
               <div
                 style={{
-                  padding: "28px 18px",
+                  padding: "30px 18px",
                   borderRadius: "15px",
                   border: "1px solid #e2e8f0",
                   background: "#f8fafc",
@@ -295,110 +399,268 @@ export default function UploadZone({
               >
                 <div style={{ fontSize: "31px" }}>📭</div>
 
-                <div style={{ marginTop: "8px", fontWeight: 700 }}>
+                <div
+                  style={{
+                    marginTop: "8px",
+                    fontWeight: 700,
+                  }}
+                >
                   No documents uploaded yet
                 </div>
               </div>
             ) : (
-              documents.map((document) => (
-                <div
-                  key={document.id}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "auto minmax(0, 1fr) auto",
-                    gap: "13px",
-                    alignItems: "center",
-                    padding: "13px 14px",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "13px",
-                    marginBottom: "9px",
-                    background: "white",
-                  }}
-                >
-                  <div
-                    style={{
-                      width: "42px",
-                      height: "42px",
-                      borderRadius: "11px",
-                      background: "#eff6ff",
-                      display: "grid",
-                      placeItems: "center",
-                      fontSize: "21px",
-                    }}
-                  >
-                    {document.type === "application/pdf"
-                      ? "📕"
-                      : document.type.startsWith("image/")
-                        ? "🖼️"
-                        : document.name.endsWith(".xlsx") ||
-                            document.name.endsWith(".xls") ||
-                            document.name.endsWith(".csv")
-                          ? "📊"
-                          : "📄"}
-                  </div>
+              documents.map((document) => {
+                const reviewed = document.reviewed ?? false;
+                const uploadedBy =
+                  document.uploadedBy ?? "Preparer";
 
-                  <button
-                    type="button"
-                    onClick={() => openDocument(document)}
+                return (
+                  <article
+                    key={document.id}
                     style={{
-                      border: "none",
-                      background: "transparent",
-                      padding: 0,
-                      cursor: "pointer",
-                      textAlign: "left",
-                      minWidth: 0,
+                      border: reviewed
+                        ? "2px solid #86efac"
+                        : "1px solid #dbe5f0",
+                      borderRadius: "16px",
+                      padding: "16px",
+                      marginBottom: "12px",
+                      background: reviewed
+                        ? "#f0fdf4"
+                        : "white",
+                      boxShadow:
+                        "0 6px 18px rgba(15,23,42,0.05)",
                     }}
                   >
                     <div
                       style={{
-                        fontWeight: 800,
-                        color: "#172033",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        display: "grid",
+                        gridTemplateColumns:
+                          "auto minmax(0, 1fr) auto",
+                        gap: "14px",
+                        alignItems: "start",
                       }}
                     >
-                      {document.name}
+                      <div
+                        style={{
+                          width: "54px",
+                          height: "54px",
+                          borderRadius: "14px",
+                          background: "#eff6ff",
+                          display: "grid",
+                          placeItems: "center",
+                          fontSize: "27px",
+                        }}
+                      >
+                        {getFileIcon(document)}
+                      </div>
+
+                      <div style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            fontWeight: 900,
+                            fontSize: "16px",
+                            color: "#172033",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {document.name}
+                        </div>
+
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "7px",
+                            marginTop: "9px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              padding: "5px 8px",
+                              borderRadius: "999px",
+                              background: "#f1f5f9",
+                              color: "#475569",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            📦 {formatFileSize(document.size)}
+                          </span>
+
+                          <span
+                            style={{
+                              padding: "5px 8px",
+                              borderRadius: "999px",
+                              background: "#f1f5f9",
+                              color: "#475569",
+                              fontSize: "11px",
+                              fontWeight: 700,
+                            }}
+                          >
+                            👤 Uploaded by {uploadedBy}
+                          </span>
+
+                          <span
+                            style={{
+                              padding: "5px 8px",
+                              borderRadius: "999px",
+                              background: reviewed
+                                ? "#dcfce7"
+                                : "#fef3c7",
+                              color: reviewed
+                                ? "#166534"
+                                : "#92400e",
+                              fontSize: "11px",
+                              fontWeight: 800,
+                            }}
+                          >
+                            {reviewed
+                              ? "✅ Reviewed"
+                              : "⏳ Needs Review"}
+                          </span>
+                        </div>
+
+                        <div
+                          style={{
+                            marginTop: "9px",
+                            fontSize: "11px",
+                            color: "#64748b",
+                          }}
+                        >
+                          Uploaded{" "}
+                          {new Date(
+                            document.uploadedAt,
+                          ).toLocaleString()}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const confirmed = window.confirm(
+                            `Delete ${document.name}?`,
+                          );
+
+                          if (confirmed) {
+                            onDeleteDocument(document.id);
+                          }
+                        }}
+                        title="Delete document"
+                        style={{
+                          width: "38px",
+                          height: "38px",
+                          border: "1px solid #fecdd3",
+                          borderRadius: "10px",
+                          background: "#fff1f2",
+                          color: "#be123c",
+                          cursor: "pointer",
+                        }}
+                      >
+                        🗑️
+                      </button>
                     </div>
 
                     <div
                       style={{
-                        marginTop: "4px",
-                        fontSize: "11px",
-                        color: "#64748b",
+                        display: "flex",
+                        flexWrap: "wrap",
+                        gap: "8px",
+                        marginTop: "15px",
+                        paddingTop: "13px",
+                        borderTop: "1px solid #e2e8f0",
                       }}
                     >
-                      {formatFileSize(document.size)} · Uploaded{" "}
-                      {new Date(document.uploadedAt).toLocaleString()}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          previewDocument(document)
+                        }
+                        style={{
+                          padding: "9px 12px",
+                          border: "1px solid #bfdbfe",
+                          borderRadius: "9px",
+                          background: "#eff6ff",
+                          color: "#1d4ed8",
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                        }}
+                      >
+                        👁 Preview
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          downloadDocument(document)
+                        }
+                        style={{
+                          padding: "9px 12px",
+                          border: "1px solid #cbd5e1",
+                          borderRadius: "9px",
+                          background: "#f8fafc",
+                          color: "#334155",
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                        }}
+                      >
+                        ⬇ Download
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          renameDocument(document)
+                        }
+                        style={{
+                          padding: "9px 12px",
+                          border: "1px solid #ddd6fe",
+                          borderRadius: "9px",
+                          background: "#f5f3ff",
+                          color: "#6d28d9",
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                        }}
+                      >
+                        ✏ Rename
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onUpdateDocument(document.id, {
+                            reviewed: !reviewed,
+                          })
+                        }
+                        style={{
+                          padding: "9px 12px",
+                          border: reviewed
+                            ? "1px solid #86efac"
+                            : "1px solid #fde68a",
+                          borderRadius: "9px",
+                          background: reviewed
+                            ? "#dcfce7"
+                            : "#fffbeb",
+                          color: reviewed
+                            ? "#166534"
+                            : "#92400e",
+                          cursor: "pointer",
+                          fontWeight: 800,
+                          fontSize: "12px",
+                        }}
+                      >
+                        {reviewed
+                          ? "↩ Mark Unreviewed"
+                          : "⭐ Mark Reviewed"}
+                      </button>
                     </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const confirmed = window.confirm(
-                        `Delete ${document.name}?`,
-                      );
-
-                      if (confirmed) {
-                        onDeleteDocument(document.id);
-                      }
-                    }}
-                    title="Delete file"
-                    style={{
-                      width: "36px",
-                      height: "36px",
-                      border: "1px solid #fecdd3",
-                      borderRadius: "10px",
-                      background: "#fff1f2",
-                      color: "#be123c",
-                      cursor: "pointer",
-                    }}
-                  >
-                    🗑️
-                  </button>
-                </div>
-              ))
+                  </article>
+                );
+              })
             )}
           </div>
 
@@ -414,9 +676,10 @@ export default function UploadZone({
               lineHeight: 1.55,
             }}
           >
-            <strong>Current development version:</strong> file names and
-            information are saved in this browser. Cloud file storage and
-            permanent document downloads will be connected in a future build.
+            <strong>Development version:</strong> document
+            information is saved in this browser. Permanent file
+            previews and downloads across sessions will be added
+            when secure cloud storage is connected.
           </div>
         </div>
       </section>

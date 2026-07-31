@@ -1350,6 +1350,15 @@ export default function Home() {
           onAddDocuments={(newDocuments) =>
             setDocuments((current) => [...newDocuments, ...current])
           }
+          onUpdateDocument={(documentId, updates) =>
+            setDocuments((current) =>
+              current.map((document) =>
+                document.id === documentId
+                  ? { ...document, ...updates }
+                  : document,
+              ),
+            )
+          }
           onDeleteDocument={(documentId) =>
             setDocuments((current) =>
               current.filter((document) => document.id !== documentId),

@@ -41,6 +41,8 @@ export type StoredDocument = {
   type: string;
   size: number;
   uploadedAt: string;
+  uploadedBy: "Preparer" | "Client";
+  reviewed: boolean;
   previewUrl?: string;
 };
 
