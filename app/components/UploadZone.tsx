@@ -1,6 +1,7 @@
 "use client";
 
 import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import DocumentPreview from "./DocumentPreview";
 import type {
   DocumentFolder,
   StoredDocument,
@@ -64,6 +65,8 @@ export default function UploadZone({
 }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [previewDocumentItem, setPreviewDocumentItem] =
+    useState<StoredDocument | null>(null);
 
   function processFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
@@ -110,18 +113,7 @@ export default function UploadZone({
   }
 
   function previewDocument(document: StoredDocument) {
-    if (document.previewUrl) {
-      window.open(
-        document.previewUrl,
-        "_blank",
-        "noopener,noreferrer",
-      );
-      return;
-    }
-
-    window.alert(
-      "This document was saved during an earlier browser session. Permanent preview and download will work after secure cloud storage is connected.",
-    );
+    setPreviewDocumentItem(document);
   }
 
   function downloadDocument(document: StoredDocument) {
@@ -683,6 +675,12 @@ export default function UploadZone({
           </div>
         </div>
       </section>
+      {previewDocumentItem && (
+        <DocumentPreview
+          document={previewDocumentItem}
+          onClose={() => setPreviewDocumentItem(null)}
+        />
+      )}
     </div>
   );
 }
