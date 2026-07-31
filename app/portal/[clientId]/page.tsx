@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import UploadZone from "../../components/UploadZone";
+import ClientRequestChecklist from "../../components/ClientRequestChecklist";
 import {
   documentFolders,
   type Client,
   type DocumentFolderId,
+  type DocumentRequest,
   type StoredDocument,
 } from "../../types/client";
 import {
   loadClients,
+  loadDocumentRequests,
   loadDocuments,
+  saveDocumentRequests,
   saveDocuments,
 } from "../../lib/storage";
 
@@ -33,6 +37,8 @@ export default function ClientPortalPage() {
 
   const [client, setClient] = useState<Client | null>(null);
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [documentRequests, setDocumentRequests] =
+    useState<DocumentRequest[]>([]);
   const [openFolderId, setOpenFolderId] =
     useState<DocumentFolderId | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -44,6 +50,7 @@ export default function ClientPortalPage() {
 
     setClient(matchingClient);
     setDocuments(loadDocuments());
+    setDocumentRequests(loadDocumentRequests());
     setLoaded(true);
   }, [clientId]);
 
@@ -52,6 +59,12 @@ export default function ClientPortalPage() {
       saveDocuments(documents);
     }
   }, [documents, loaded]);
+
+  useEffect(() => {
+    if (loaded) {
+      saveDocumentRequests(documentRequests);
+    }
+  }, [documentRequests, loaded]);
 
   const clientDocuments = useMemo(
     () =>
@@ -318,7 +331,14 @@ export default function ClientPortalPage() {
           ))}
         </section>
 
-        <section
+                <ClientRequestChecklist
+          requests={documentRequests.filter(
+            (request) => request.clientId === client.id,
+          )}
+          onOpenFolder={setOpenFolderId}
+        />
+
+<section
           style={{
             marginTop: "20px",
             background: "white",
@@ -462,15 +482,26 @@ export default function ClientPortalPage() {
               document.clientId === client.id &&
               document.folderId === openFolderId,
           )}
-          onAddDocuments={(newDocuments) =>
+          onAddDocuments={(newDocuments) => {
             setDocuments((current) => [
               ...newDocuments.map((document) => ({
                 ...document,
                 uploadedBy: "Client" as const,
               })),
               ...current,
-            ])
-          }
+            ]);
+
+            setDocumentRequests((current) =>
+              current.map((request) =>
+                request.clientId === client.id &&
+                request.requested &&
+                request.category === openFolderId &&
+                request.status === "Waiting"
+                  ? { ...request, status: "Uploaded" }
+                  : request,
+              ),
+            );
+          }}
           onUpdateDocument={(documentId, updates) =>
             setDocuments((current) =>
               current.map((document) =>
