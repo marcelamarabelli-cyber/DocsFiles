@@ -1420,7 +1420,7 @@ export default function Home() {
 
                 const nextStatus = statusForReviewedDocument(
                   existingDocument,
-                  updates.reviewed,
+updates.reviewed ?? false,
                 );
 
                 return current.map((request) =>

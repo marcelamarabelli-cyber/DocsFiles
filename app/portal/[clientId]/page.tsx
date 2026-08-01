@@ -19,6 +19,7 @@ import {
   saveDocuments,
 } from "../../lib/storage";
 import { findMatchingRequest } from "../../lib/requestMatcher";
+import ClientOverviewCard from "@/app/components/ClientOverviewCard";
 
 function getClientName(client: Client) {
   if (client.clientType === "Business" && client.businessName.trim()) {
@@ -209,7 +210,16 @@ export default function ClientPortalPage() {
           </div>
         </div>
       </header>
-
+<ClientOverviewCard
+  clientName={getClientName(client)}
+  taxYear={Number(client.taxYear)}
+  filingStatus="Married Filing Jointly"
+  email={client.email}
+  phone={client.phone}
+  completedItems={documents.filter((document) => document.reviewed).length}
+  totalItems={documentFolders.length}
+  status={client.status}
+/>
       <div
         style={{
           maxWidth: "1180px",

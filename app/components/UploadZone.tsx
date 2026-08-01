@@ -24,6 +24,32 @@ type UploadZoneProps = {
   onClose: () => void;
 };
 
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+const ACCEPTED_EXTENSIONS = [
+  ".pdf",
+  ".doc",
+  ".docx",
+  ".xls",
+  ".xlsx",
+  ".csv",
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".heic",
+  ".txt",
+];
+
+function getFileExtension(fileName: string) {
+  const dotIndex = fileName.lastIndexOf(".");
+  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
+}
+
+function isAcceptedFile(file: File) {
+  return ACCEPTED_EXTENSIONS.includes(getFileExtension(file.name));
+}
+
 function getFileIcon(document: StoredDocument) {
   const lowerName = document.name.toLowerCase();
 
@@ -75,7 +101,35 @@ export default function UploadZone({
       return;
     }
 
-    const newDocuments: StoredDocument[] = fileArray.map((file) => ({
+    const rejectedFiles: string[] = [];
+    const duplicateFiles: string[] = [];
+
+    const acceptedFiles = fileArray.filter((file) => {
+      if (!isAcceptedFile(file)) {
+        rejectedFiles.push(`${file.name} — unsupported file type`);
+        return false;
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        rejectedFiles.push(`${file.name} — larger than 25 MB`);
+        return false;
+      }
+
+      const isDuplicate = documents.some(
+        (document) =>
+          document.name.toLowerCase() === file.name.toLowerCase() &&
+          document.size === file.size,
+      );
+
+      if (isDuplicate) {
+        duplicateFiles.push(file.name);
+        return false;
+      }
+
+      return true;
+    });
+
+    const newDocuments: StoredDocument[] = acceptedFiles.map((file) => ({
       id: createDocumentId(),
       clientId,
       folderId: folder.id,
@@ -92,7 +146,21 @@ export default function UploadZone({
           : undefined,
     }));
 
-    onAddDocuments(newDocuments);
+    if (newDocuments.length > 0) {
+      onAddDocuments(newDocuments);
+    }
+
+    if (duplicateFiles.length > 0) {
+      window.alert(
+        `Duplicate files skipped:\n\n${duplicateFiles.join("\n")}`,
+      );
+    }
+
+    if (rejectedFiles.length > 0) {
+      window.alert(
+        `These files could not be added:\n\n${rejectedFiles.join("\n")}`,
+      );
+    }
   }
 
   function handleFileInput(event: ChangeEvent<HTMLInputElement>) {
@@ -259,11 +327,41 @@ export default function UploadZone({
         </header>
 
         <div style={{ padding: "24px" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns:
+                "repeat(auto-fit, minmax(160px, 1fr))",
+              gap: "12px",
+              marginBottom: "18px",
+            }}
+          >
+            <UploadStat
+              icon="📁"
+              label="Total files"
+              value={documents.length}
+            />
+            <UploadStat
+              icon="✅"
+              label="Reviewed"
+              value={
+                documents.filter((document) => document.reviewed).length
+              }
+            />
+            <UploadStat
+              icon="⏳"
+              label="Pending"
+              value={
+                documents.filter((document) => !document.reviewed).length
+              }
+            />
+          </div>
+
           <input
             ref={fileInputRef}
             type="file"
             multiple
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png,.webp,.heic,.txt"
+            accept={ACCEPTED_EXTENSIONS.join(",")}
             onChange={handleFileInput}
             style={{ display: "none" }}
           />
@@ -319,7 +417,7 @@ export default function UploadZone({
                 fontSize: "13px",
               }}
             >
-              PDF, Word, Excel, CSV and image files are accepted.
+              PDF, Word, Excel, CSV and image files up to 25 MB each are accepted.
             </p>
 
             <button
@@ -681,6 +779,55 @@ export default function UploadZone({
           onClose={() => setPreviewDocumentItem(null)}
         />
       )}
+    </div>
+  );
+}
+
+function UploadStat({
+  icon,
+  label,
+  value,
+}: {
+  icon: string;
+  label: string;
+  value: number;
+}) {
+  return (
+    <div
+      style={{
+        border: "1px solid #e2e8f0",
+        borderRadius: "14px",
+        background: "#f8fafc",
+        padding: "14px",
+        display: "flex",
+        alignItems: "center",
+        gap: "11px",
+      }}
+    >
+      <div style={{ fontSize: "22px" }}>{icon}</div>
+      <div>
+        <div
+          style={{
+            fontSize: "11px",
+            color: "#64748b",
+            fontWeight: 800,
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+          }}
+        >
+          {label}
+        </div>
+        <div
+          style={{
+            marginTop: "2px",
+            fontSize: "22px",
+            color: "#172033",
+            fontWeight: 900,
+          }}
+        >
+          {value}
+        </div>
+      </div>
     </div>
   );
 }
