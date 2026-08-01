@@ -1,6 +1,12 @@
 "use client";
 
-import { ChangeEvent, DragEvent, useRef, useState } from "react";
+import {
+  ChangeEvent,
+  DragEvent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import DocumentPreview from "./DocumentPreview";
 import type {
   DocumentFolder,
@@ -8,7 +14,11 @@ import type {
 } from "../types/client";
 import {
   createDocumentId,
+  createDocumentPreviewUrl,
+  deleteDocumentFile,
+  downloadStoredDocument,
   formatFileSize,
+  saveDocumentFile,
 } from "../lib/storage";
 
 type UploadZoneProps = {
@@ -43,21 +53,32 @@ const ACCEPTED_EXTENSIONS = [
 
 function getFileExtension(fileName: string) {
   const dotIndex = fileName.lastIndexOf(".");
-  return dotIndex >= 0 ? fileName.slice(dotIndex).toLowerCase() : "";
+
+  return dotIndex >= 0
+    ? fileName.slice(dotIndex).toLowerCase()
+    : "";
 }
 
 function isAcceptedFile(file: File) {
-  return ACCEPTED_EXTENSIONS.includes(getFileExtension(file.name));
+  return ACCEPTED_EXTENSIONS.includes(
+    getFileExtension(file.name),
+  );
 }
 
 function getFileIcon(document: StoredDocument) {
   const lowerName = document.name.toLowerCase();
 
-  if (document.type === "application/pdf" || lowerName.endsWith(".pdf")) {
+  if (
+    document.type === "application/pdf" ||
+    lowerName.endsWith(".pdf")
+  ) {
     return "📕";
   }
 
-  if (document.type.startsWith("image/")) {
+  if (
+    document.type.startsWith("image/") ||
+    /\.(jpg|jpeg|png|webp|gif|heic)$/i.test(document.name)
+  ) {
     return "🖼️";
   }
 
@@ -69,12 +90,15 @@ function getFileIcon(document: StoredDocument) {
     return "📊";
   }
 
-  if (lowerName.endsWith(".doc") || lowerName.endsWith(".docx")) {
+  if (
+    lowerName.endsWith(".doc") ||
+    lowerName.endsWith(".docx")
+  ) {
     return "📝";
   }
 
-  if (lowerName.endsWith(".zip")) {
-    return "🗜️";
+  if (lowerName.endsWith(".txt")) {
+    return "📃";
   }
 
   return "📄";
@@ -90,11 +114,26 @@ export default function UploadZone({
   onClose,
 }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
+  const [isSavingFiles, setIsSavingFiles] = useState(false);
+  const [savingMessage, setSavingMessage] = useState("");
   const [previewDocumentItem, setPreviewDocumentItem] =
     useState<StoredDocument | null>(null);
 
-  function processFiles(files: FileList | File[]) {
+  useEffect(() => {
+    return () => {
+      if (
+        previewDocumentItem?.previewUrl?.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(
+          previewDocumentItem.previewUrl,
+        );
+      }
+    };
+  }, [previewDocumentItem]);
+
+  async function processFiles(files: FileList | File[]) {
     const fileArray = Array.from(files);
 
     if (fileArray.length === 0) {
@@ -106,18 +145,23 @@ export default function UploadZone({
 
     const acceptedFiles = fileArray.filter((file) => {
       if (!isAcceptedFile(file)) {
-        rejectedFiles.push(`${file.name} — unsupported file type`);
+        rejectedFiles.push(
+          `${file.name} — unsupported file type`,
+        );
         return false;
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        rejectedFiles.push(`${file.name} — larger than 25 MB`);
+        rejectedFiles.push(
+          `${file.name} — larger than 25 MB`,
+        );
         return false;
       }
 
       const isDuplicate = documents.some(
         (document) =>
-          document.name.toLowerCase() === file.name.toLowerCase() &&
+          document.name.toLowerCase() ===
+            file.name.toLowerCase() &&
           document.size === file.size,
       );
 
@@ -129,43 +173,88 @@ export default function UploadZone({
       return true;
     });
 
-    const newDocuments: StoredDocument[] = acceptedFiles.map((file) => ({
-      id: createDocumentId(),
-      clientId,
-      folderId: folder.id,
-      name: file.name,
-      type: file.type || "Unknown file type",
-      size: file.size,
-      uploadedAt: new Date().toISOString(),
-      uploadedBy: "Preparer",
-      reviewed: false,
-      previewUrl:
-        file.type.startsWith("image/") ||
-        file.type === "application/pdf"
-          ? URL.createObjectURL(file)
-          : undefined,
-    }));
-
-    if (newDocuments.length > 0) {
-      onAddDocuments(newDocuments);
-    }
-
     if (duplicateFiles.length > 0) {
       window.alert(
-        `Duplicate files skipped:\n\n${duplicateFiles.join("\n")}`,
+        `Duplicate files skipped:\n\n${duplicateFiles.join(
+          "\n",
+        )}`,
       );
     }
 
     if (rejectedFiles.length > 0) {
       window.alert(
-        `These files could not be added:\n\n${rejectedFiles.join("\n")}`,
+        `These files could not be added:\n\n${rejectedFiles.join(
+          "\n",
+        )}`,
       );
+    }
+
+    if (acceptedFiles.length === 0) {
+      return;
+    }
+
+    setIsSavingFiles(true);
+
+    const savedDocuments: StoredDocument[] = [];
+    const failedFiles: string[] = [];
+
+    try {
+      for (let index = 0; index < acceptedFiles.length; index += 1) {
+        const file = acceptedFiles[index];
+
+        setSavingMessage(
+          `Saving ${index + 1} of ${
+            acceptedFiles.length
+          }: ${file.name}`,
+        );
+
+        const document: StoredDocument = {
+          id: createDocumentId(),
+          clientId,
+          folderId: folder.id,
+          name: file.name,
+          type: file.type || "Unknown file type",
+          size: file.size,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: "Preparer",
+          reviewed: false,
+        };
+
+        try {
+          await saveDocumentFile(document, file);
+          savedDocuments.push(document);
+        } catch (error) {
+          console.error(
+            `Unable to save ${file.name}:`,
+            error,
+          );
+
+          failedFiles.push(file.name);
+        }
+      }
+
+      if (savedDocuments.length > 0) {
+        onAddDocuments(savedDocuments);
+      }
+
+      if (failedFiles.length > 0) {
+        window.alert(
+          `These files could not be saved permanently:\n\n${failedFiles.join(
+            "\n",
+          )}`,
+        );
+      }
+    } finally {
+      setIsSavingFiles(false);
+      setSavingMessage("");
     }
   }
 
-  function handleFileInput(event: ChangeEvent<HTMLInputElement>) {
+  function handleFileInput(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
     if (event.target.files) {
-      processFiles(event.target.files);
+      void processFiles(event.target.files);
     }
 
     event.target.value = "";
@@ -176,26 +265,57 @@ export default function UploadZone({
     setIsDragging(false);
 
     if (event.dataTransfer.files.length > 0) {
-      processFiles(event.dataTransfer.files);
+      void processFiles(event.dataTransfer.files);
     }
   }
 
-  function previewDocument(document: StoredDocument) {
-    setPreviewDocumentItem(document);
-  }
-
-  function downloadDocument(document: StoredDocument) {
-    if (!document.previewUrl) {
-      window.alert(
-        "Permanent downloads will work after secure cloud storage is connected.",
+  async function previewDocument(
+    document: StoredDocument,
+  ) {
+    try {
+      const previewUrl = await createDocumentPreviewUrl(
+        document.id,
       );
-      return;
-    }
 
-    const link = window.document.createElement("a");
-    link.href = document.previewUrl;
-    link.download = document.name;
-    link.click();
+      if (!previewUrl) {
+        window.alert(
+          "The saved file could not be found. It may have been uploaded before permanent storage was installed. Please upload it again.",
+        );
+        return;
+      }
+
+      setPreviewDocumentItem({
+        ...document,
+        previewUrl,
+      });
+    } catch (error) {
+      console.error("Unable to preview document:", error);
+
+      window.alert(
+        "DocsFiles could not open this document preview.",
+      );
+    }
+  }
+
+  async function downloadDocument(
+    document: StoredDocument,
+  ) {
+    try {
+      const downloaded =
+        await downloadStoredDocument(document);
+
+      if (!downloaded) {
+        window.alert(
+          "The permanent file could not be found. Please upload this document again.",
+        );
+      }
+    } catch (error) {
+      console.error("Unable to download document:", error);
+
+      window.alert(
+        "DocsFiles could not download this document.",
+      );
+    }
   }
 
   function renameDocument(document: StoredDocument) {
@@ -213,6 +333,33 @@ export default function UploadZone({
     });
   }
 
+  async function removeDocument(
+    document: StoredDocument,
+  ) {
+    const confirmed = window.confirm(
+      `Delete ${document.name}?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await deleteDocumentFile(document.id);
+      onDeleteDocument(document.id);
+
+      if (previewDocumentItem?.id === document.id) {
+        setPreviewDocumentItem(null);
+      }
+    } catch (error) {
+      console.error("Unable to delete document:", error);
+
+      window.alert(
+        "DocsFiles could not delete this document. Please try again.",
+      );
+    }
+  }
+
   return (
     <div
       style={{
@@ -226,7 +373,10 @@ export default function UploadZone({
         padding: "20px",
       }}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+        if (
+          event.target === event.currentTarget &&
+          !isSavingFiles
+        ) {
           onClose();
         }
       }}
@@ -311,6 +461,12 @@ export default function UploadZone({
           <button
             type="button"
             onClick={onClose}
+            disabled={isSavingFiles}
+            title={
+              isSavingFiles
+                ? "Please wait until the files finish saving"
+                : "Close folder"
+            }
             style={{
               width: "38px",
               height: "38px",
@@ -318,8 +474,11 @@ export default function UploadZone({
               borderRadius: "11px",
               background: "#f1f5f9",
               color: "#475569",
-              cursor: "pointer",
+              cursor: isSavingFiles
+                ? "not-allowed"
+                : "pointer",
               fontWeight: 800,
+              opacity: isSavingFiles ? 0.55 : 1,
             }}
           >
             ✕
@@ -341,18 +500,24 @@ export default function UploadZone({
               label="Total files"
               value={documents.length}
             />
+
             <UploadStat
               icon="✅"
               label="Reviewed"
               value={
-                documents.filter((document) => document.reviewed).length
+                documents.filter(
+                  (document) => document.reviewed,
+                ).length
               }
             />
+
             <UploadStat
               icon="⏳"
               label="Pending"
               value={
-                documents.filter((document) => !document.reviewed).length
+                documents.filter(
+                  (document) => !document.reviewed,
+                ).length
               }
             />
           </div>
@@ -363,40 +528,64 @@ export default function UploadZone({
             multiple
             accept={ACCEPTED_EXTENSIONS.join(",")}
             onChange={handleFileInput}
+            disabled={isSavingFiles}
             style={{ display: "none" }}
           />
 
           <div
             onDragEnter={(event) => {
               event.preventDefault();
-              setIsDragging(true);
+
+              if (!isSavingFiles) {
+                setIsDragging(true);
+              }
             }}
             onDragOver={(event) => {
               event.preventDefault();
-              setIsDragging(true);
+
+              if (!isSavingFiles) {
+                setIsDragging(true);
+              }
             }}
             onDragLeave={(event) => {
               event.preventDefault();
               setIsDragging(false);
             }}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
+            onDrop={(event) => {
+              if (!isSavingFiles) {
+                handleDrop(event);
+              }
+            }}
+            onClick={() => {
+              if (!isSavingFiles) {
+                fileInputRef.current?.click();
+              }
+            }}
             style={{
               border: isDragging
                 ? "3px dashed #6366f1"
                 : "2px dashed #94a3b8",
-              background: isDragging
+              background: isSavingFiles
                 ? "#eef2ff"
-                : "#f8fafc",
+                : isDragging
+                  ? "#eef2ff"
+                  : "#f8fafc",
               borderRadius: "18px",
               padding: "30px 22px",
               textAlign: "center",
-              cursor: "pointer",
+              cursor: isSavingFiles
+                ? "wait"
+                : "pointer",
               transition: "all 160ms ease",
+              opacity: isSavingFiles ? 0.85 : 1,
             }}
           >
             <div style={{ fontSize: "40px" }}>
-              {isDragging ? "📥" : "📤"}
+              {isSavingFiles
+                ? "💾"
+                : isDragging
+                  ? "📥"
+                  : "📤"}
             </div>
 
             <h3
@@ -405,9 +594,11 @@ export default function UploadZone({
                 fontSize: "19px",
               }}
             >
-              {isDragging
-                ? "Drop the files here"
-                : "Drag files here or click to upload"}
+              {isSavingFiles
+                ? "Saving files permanently…"
+                : isDragging
+                  ? "Drop the files here"
+                  : "Drag files here or click to upload"}
             </h3>
 
             <p
@@ -417,29 +608,33 @@ export default function UploadZone({
                 fontSize: "13px",
               }}
             >
-              PDF, Word, Excel, CSV and image files up to 25 MB each are accepted.
+              {isSavingFiles
+                ? savingMessage
+                : "PDF, Word, Excel, CSV and image files up to 25 MB each are accepted."}
             </p>
 
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                fileInputRef.current?.click();
-              }}
-              style={{
-                marginTop: "15px",
-                padding: "11px 17px",
-                border: "none",
-                borderRadius: "11px",
-                background:
-                  "linear-gradient(135deg, #2563eb, #7c3aed)",
-                color: "white",
-                cursor: "pointer",
-                fontWeight: 800,
-              }}
-            >
-              Choose Files
-            </button>
+            {!isSavingFiles && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  fileInputRef.current?.click();
+                }}
+                style={{
+                  marginTop: "15px",
+                  padding: "11px 17px",
+                  border: "none",
+                  borderRadius: "11px",
+                  background:
+                    "linear-gradient(135deg, #2563eb, #7c3aed)",
+                  color: "white",
+                  cursor: "pointer",
+                  fontWeight: 800,
+                }}
+              >
+                Choose Files
+              </button>
+            )}
           </div>
 
           <div
@@ -469,8 +664,10 @@ export default function UploadZone({
                 }}
               >
                 {documents.length}{" "}
-                {documents.length === 1 ? "file" : "files"} in
-                this folder
+                {documents.length === 1
+                  ? "file"
+                  : "files"}{" "}
+                in this folder
               </p>
             </div>
           </div>
@@ -500,7 +697,9 @@ export default function UploadZone({
               </div>
             ) : (
               documents.map((document) => {
-                const reviewed = document.reviewed ?? false;
+                const reviewed =
+                  document.reviewed ?? false;
+
                 const uploadedBy =
                   document.uploadedBy ?? "Preparer";
 
@@ -554,6 +753,7 @@ export default function UploadZone({
                             textOverflow: "ellipsis",
                             whiteSpace: "nowrap",
                           }}
+                          title={document.name}
                         >
                           {document.name}
                         </div>
@@ -576,7 +776,10 @@ export default function UploadZone({
                               fontWeight: 700,
                             }}
                           >
-                            📦 {formatFileSize(document.size)}
+                            📦{" "}
+                            {formatFileSize(
+                              document.size,
+                            )}
                           </span>
 
                           <span
@@ -629,13 +832,7 @@ export default function UploadZone({
                       <button
                         type="button"
                         onClick={() => {
-                          const confirmed = window.confirm(
-                            `Delete ${document.name}?`,
-                          );
-
-                          if (confirmed) {
-                            onDeleteDocument(document.id);
-                          }
+                          void removeDocument(document);
                         }}
                         title="Delete document"
                         style={{
@@ -659,17 +856,19 @@ export default function UploadZone({
                         gap: "8px",
                         marginTop: "15px",
                         paddingTop: "13px",
-                        borderTop: "1px solid #e2e8f0",
+                        borderTop:
+                          "1px solid #e2e8f0",
                       }}
                     >
                       <button
                         type="button"
-                        onClick={() =>
-                          previewDocument(document)
-                        }
+                        onClick={() => {
+                          void previewDocument(document);
+                        }}
                         style={{
                           padding: "9px 12px",
-                          border: "1px solid #bfdbfe",
+                          border:
+                            "1px solid #bfdbfe",
                           borderRadius: "9px",
                           background: "#eff6ff",
                           color: "#1d4ed8",
@@ -683,12 +882,13 @@ export default function UploadZone({
 
                       <button
                         type="button"
-                        onClick={() =>
-                          downloadDocument(document)
-                        }
+                        onClick={() => {
+                          void downloadDocument(document);
+                        }}
                         style={{
                           padding: "9px 12px",
-                          border: "1px solid #cbd5e1",
+                          border:
+                            "1px solid #cbd5e1",
                           borderRadius: "9px",
                           background: "#f8fafc",
                           color: "#334155",
@@ -707,7 +907,8 @@ export default function UploadZone({
                         }
                         style={{
                           padding: "9px 12px",
-                          border: "1px solid #ddd6fe",
+                          border:
+                            "1px solid #ddd6fe",
                           borderRadius: "9px",
                           background: "#f5f3ff",
                           color: "#6d28d9",
@@ -722,9 +923,12 @@ export default function UploadZone({
                       <button
                         type="button"
                         onClick={() =>
-                          onUpdateDocument(document.id, {
-                            reviewed: !reviewed,
-                          })
+                          onUpdateDocument(
+                            document.id,
+                            {
+                              reviewed: !reviewed,
+                            },
+                          )
                         }
                         style={{
                           padding: "9px 12px",
@@ -759,24 +963,30 @@ export default function UploadZone({
               marginTop: "18px",
               padding: "13px 15px",
               borderRadius: "13px",
-              background: "#fffbeb",
-              border: "1px solid #fde68a",
-              color: "#92400e",
+              background: "#ecfdf5",
+              border: "1px solid #86efac",
+              color: "#166534",
               fontSize: "12px",
               lineHeight: 1.55,
             }}
           >
-            <strong>Development version:</strong> document
-            information is saved in this browser. Permanent file
-            previews and downloads across sessions will be added
-            when secure cloud storage is connected.
+            <strong>
+              Permanent browser storage enabled:
+            </strong>{" "}
+            newly uploaded files are stored on this Mac and
+            remain available after refreshing or reopening
+            DocsFiles. Secure online cloud storage and client
+            login will be added before real client use.
           </div>
         </div>
       </section>
+
       {previewDocumentItem && (
         <DocumentPreview
           document={previewDocumentItem}
-          onClose={() => setPreviewDocumentItem(null)}
+          onClose={() =>
+            setPreviewDocumentItem(null)
+          }
         />
       )}
     </div>
@@ -805,6 +1015,7 @@ function UploadStat({
       }}
     >
       <div style={{ fontSize: "22px" }}>{icon}</div>
+
       <div>
         <div
           style={{
@@ -817,6 +1028,7 @@ function UploadStat({
         >
           {label}
         </div>
+
         <div
           style={{
             marginTop: "2px",
