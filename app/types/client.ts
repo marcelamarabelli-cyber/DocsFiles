@@ -11,6 +11,7 @@ export type ClientStatus =
 
 export type DocumentFolderId =
   | "client-intake"
+  | "identification"
   | "income"
   | "deductions"
   | "expenses"
@@ -87,7 +88,13 @@ export const documentFolders: DocumentFolder[] = [
     id: "client-intake",
     icon: "📥",
     title: "Client Intake",
-    subtitle: "Questionnaire, identification and profile",
+    subtitle: "Questionnaire, contact information and tax profile",
+  },
+  {
+    id: "identification",
+    icon: "🪪",
+    title: "Identification",
+    subtitle: "Driver licenses, Social Security cards and identification",
   },
   {
     id: "income",
@@ -197,25 +204,117 @@ export const standardDocumentRequests: Array<{
   title: string;
   category: DocumentFolderId;
 }> = [
-  { title: "Driver License or State Identification", category: "client-intake" },
-  { title: "Social Security Cards", category: "client-intake" },
-  { title: "Prior-Year Tax Return", category: "client-intake" },
-  { title: "W-2 Wage Statements", category: "income" },
-  { title: "1099-INT Interest Statements", category: "income" },
-  { title: "1099-DIV Dividend Statements", category: "income" },
-  { title: "1099-R Retirement Statements", category: "income" },
-  { title: "SSA-1099 Social Security Statement", category: "income" },
-  { title: "K-1 Statements", category: "income" },
-  { title: "Brokerage and Investment Statements", category: "income" },
-  { title: "Mortgage Interest Form 1098", category: "deductions" },
-  { title: "Property Tax Statements", category: "deductions" },
-  { title: "Charitable Donation Records", category: "charitable-donations" },
-  { title: "Medical and Dental Expenses", category: "medical" },
-  { title: "Business Income and Expenses", category: "bookkeeping" },
-  { title: "Business Mileage Log", category: "mileage" },
-  { title: "Rental Income and Expenses", category: "rental-properties" },
-  { title: "Rental Property Closing Statements", category: "rental-properties" },
-  { title: "Bank Statements", category: "bank-statements" },
-  { title: "Signed Consent and Authorization Forms", category: "e-signatures" },
-  { title: "Other Supporting Documents", category: "receipts" },
+  {
+    title: "Completed Client Intake Questionnaire",
+    category: "client-intake",
+  },
+  {
+    title: "Prior-Year Tax Return",
+    category: "client-intake",
+  },
+
+  {
+    title: "Primary Taxpayer Driver License — Front",
+    category: "identification",
+  },
+  {
+    title: "Primary Taxpayer Driver License — Back",
+    category: "identification",
+  },
+  {
+    title: "Spouse Driver License — Front",
+    category: "identification",
+  },
+  {
+    title: "Spouse Driver License — Back",
+    category: "identification",
+  },
+  {
+    title: "Social Security Cards",
+    category: "identification",
+  },
+  {
+    title: "Passport or State Identification, if applicable",
+    category: "identification",
+  },
+  {
+    title: "ITIN Letter, if applicable",
+    category: "identification",
+  },
+
+  {
+    title: "W-2 Wage Statements",
+    category: "income",
+  },
+  {
+    title: "1099-INT Interest Statements",
+    category: "income",
+  },
+  {
+    title: "1099-DIV Dividend Statements",
+    category: "income",
+  },
+  {
+    title: "1099-R Retirement Statements",
+    category: "income",
+  },
+  {
+    title: "SSA-1099 Social Security Statement",
+    category: "income",
+  },
+  {
+    title: "K-1 Statements",
+    category: "income",
+  },
+  {
+    title: "Brokerage and Investment Statements",
+    category: "income",
+  },
+
+  {
+    title: "Mortgage Interest Form 1098",
+    category: "deductions",
+  },
+  {
+    title: "Property Tax Statements",
+    category: "deductions",
+  },
+  {
+    title: "Charitable Donation Records",
+    category: "charitable-donations",
+  },
+  {
+    title: "Medical and Dental Expenses",
+    category: "medical",
+  },
+
+  {
+    title: "Business Income and Expenses",
+    category: "bookkeeping",
+  },
+  {
+    title: "Business Mileage Log",
+    category: "mileage",
+  },
+  {
+    title: "Rental Income and Expenses",
+    category: "rental-properties",
+  },
+  {
+    title: "Rental Property Closing Statements",
+    category: "rental-properties",
+  },
+
+  {
+    title: "Bank Statements",
+    category: "bank-statements",
+  },
+  {
+    title: "Signed Consent and Authorization Forms",
+    category: "e-signatures",
+  },
+  {
+    title: "Other Supporting Documents",
+    category: "receipts",
+  },
 ];
