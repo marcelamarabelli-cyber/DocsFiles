@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import type { StoredDocument } from "../types/client";
 
 type DocumentPreviewProps = {
@@ -11,13 +12,98 @@ export default function DocumentPreview({
   document,
   onClose,
 }: DocumentPreviewProps) {
+  const [imageZoom, setImageZoom] = useState(1);
+  const [imageRotation, setImageRotation] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  const lowerName = document.name.toLowerCase();
+
   const isPdf =
-    document.type === "application/pdf" ||
-    document.name.toLowerCase().endsWith(".pdf");
+    document.type === "application/pdf" || lowerName.endsWith(".pdf");
 
   const isImage =
     document.type.startsWith("image/") ||
     /\.(jpg|jpeg|png|webp|gif|heic)$/i.test(document.name);
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        onClose();
+      }
+
+      if (!isImage) {
+        return;
+      }
+
+      if (event.key === "+" || event.key === "=") {
+        setImageZoom((current) => Math.min(current + 0.25, 4));
+      }
+
+      if (event.key === "-") {
+        setImageZoom((current) => Math.max(current - 0.25, 0.25));
+      }
+
+      if (event.key.toLowerCase() === "r") {
+        setImageRotation((current) => (current + 90) % 360);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isImage, onClose]);
+
+  function zoomIn() {
+    setImageZoom((current) => Math.min(current + 0.25, 4));
+  }
+
+  function zoomOut() {
+    setImageZoom((current) => Math.max(current - 0.25, 0.25));
+  }
+
+  function rotateLeft() {
+    setImageRotation((current) => (current - 90 + 360) % 360);
+  }
+
+  function rotateRight() {
+    setImageRotation((current) => (current + 90) % 360);
+  }
+
+  function resetImage() {
+    setImageZoom(1);
+    setImageRotation(0);
+  }
+
+  function openInNewTab() {
+    if (!document.previewUrl) {
+      window.alert(
+        "This document does not currently have an available preview link.",
+      );
+      return;
+    }
+
+    window.open(document.previewUrl, "_blank", "noopener,noreferrer");
+  }
+
+  function downloadDocument() {
+    if (!document.previewUrl) {
+      window.alert(
+        "This document cannot be downloaded until secure cloud storage is connected.",
+      );
+      return;
+    }
+
+    const link = window.document.createElement("a");
+    link.href = document.previewUrl;
+    link.download = document.name;
+    link.click();
+  }
+
+  const viewerWidth = isFullscreen ? "100%" : "min(1180px, 100%)";
+  const viewerHeight = isFullscreen ? "100vh" : "min(900px, 94vh)";
+  const viewerRadius = isFullscreen ? "0" : "20px";
 
   return (
     <div
@@ -25,33 +111,35 @@ export default function DocumentPreview({
         position: "fixed",
         inset: 0,
         zIndex: 400,
-        background: "rgba(15, 23, 42, 0.82)",
-        backdropFilter: "blur(7px)",
+        background: "rgba(15, 23, 42, 0.86)",
+        backdropFilter: "blur(8px)",
         display: "grid",
         placeItems: "center",
-        padding: "18px",
+        padding: isFullscreen ? 0 : "18px",
       }}
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) {
+        if (event.target === event.currentTarget && !isFullscreen) {
           onClose();
         }
       }}
     >
       <section
         style={{
-          width: "min(1180px, 100%)",
-          height: "min(900px, 94vh)",
+          width: viewerWidth,
+          height: viewerHeight,
           background: "white",
-          borderRadius: "20px",
+          borderRadius: viewerRadius,
           overflow: "hidden",
-          boxShadow: "0 35px 100px rgba(0,0,0,0.4)",
+          boxShadow: isFullscreen
+            ? "none"
+            : "0 35px 100px rgba(0,0,0,0.42)",
           display: "grid",
-          gridTemplateRows: "auto minmax(0, 1fr)",
+          gridTemplateRows: "auto auto minmax(0, 1fr)",
         }}
       >
         <header
           style={{
-            padding: "15px 18px",
+            padding: "14px 18px",
             borderBottom: "1px solid #e2e8f0",
             display: "flex",
             justifyContent: "space-between",
@@ -70,7 +158,11 @@ export default function DocumentPreview({
                 textTransform: "uppercase",
               }}
             >
-              Document Preview
+              {isPdf
+                ? "PDF Preview"
+                : isImage
+                  ? "Image Preview"
+                  : "Document Preview"}
             </div>
 
             <div
@@ -82,7 +174,9 @@ export default function DocumentPreview({
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                maxWidth: "700px",
               }}
+              title={document.name}
             >
               {document.name}
             </div>
@@ -92,35 +186,41 @@ export default function DocumentPreview({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "9px",
+              gap: "8px",
               flexShrink: 0,
+              flexWrap: "wrap",
+              justifyContent: "flex-end",
             }}
           >
             {document.previewUrl && (
-              <a
-                href={document.previewUrl}
-                download={document.name}
-                style={{
-                  padding: "9px 12px",
-                  borderRadius: "10px",
-                  background: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                  color: "#1d4ed8",
-                  fontWeight: 800,
-                  fontSize: "12px",
-                  textDecoration: "none",
-                }}
-              >
-                ⬇ Download
-              </a>
+              <>
+                <ToolbarButton
+                  label="↗ Open"
+                  title="Open in a new browser tab"
+                  onClick={openInNewTab}
+                />
+
+                <ToolbarButton
+                  label="⬇ Download"
+                  title="Download document"
+                  onClick={downloadDocument}
+                />
+
+                <ToolbarButton
+                  label={isFullscreen ? "↙ Exit Full Screen" : "⛶ Full Screen"}
+                  title="Toggle full-screen viewer"
+                  onClick={() => setIsFullscreen((current) => !current)}
+                />
+              </>
             )}
 
             <button
               type="button"
               onClick={onClose}
+              title="Close preview"
               style={{
-                width: "38px",
-                height: "38px",
+                width: "39px",
+                height: "39px",
                 border: "none",
                 borderRadius: "10px",
                 background: "#e2e8f0",
@@ -137,44 +237,112 @@ export default function DocumentPreview({
 
         <div
           style={{
+            minHeight: "52px",
+            padding: "8px 14px",
+            borderBottom: "1px solid #cbd5e1",
+            background: "#eef2f7",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "12px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div
+            style={{
+              color: "#475569",
+              fontSize: "12px",
+              fontWeight: 700,
+            }}
+          >
+            {isPdf && "Use the PDF controls inside the viewer to zoom or print."}
+
+            {isImage &&
+              "Use the controls below or press +, −, or R on your keyboard."}
+
+            {!isPdf &&
+              !isImage &&
+              "This file type may need to be downloaded and opened separately."}
+          </div>
+
+          {isImage && document.previewUrl && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "7px",
+                flexWrap: "wrap",
+              }}
+            >
+              <ToolbarButton
+                label="−"
+                title="Zoom out"
+                onClick={zoomOut}
+                compact
+              />
+
+              <div
+                style={{
+                  minWidth: "70px",
+                  padding: "8px 10px",
+                  borderRadius: "9px",
+                  background: "white",
+                  border: "1px solid #cbd5e1",
+                  color: "#334155",
+                  textAlign: "center",
+                  fontSize: "12px",
+                  fontWeight: 900,
+                }}
+              >
+                {Math.round(imageZoom * 100)}%
+              </div>
+
+              <ToolbarButton
+                label="+"
+                title="Zoom in"
+                onClick={zoomIn}
+                compact
+              />
+
+              <ToolbarButton
+                label="↶"
+                title="Rotate left"
+                onClick={rotateLeft}
+                compact
+              />
+
+              <ToolbarButton
+                label="↷"
+                title="Rotate right"
+                onClick={rotateRight}
+                compact
+              />
+
+              <ToolbarButton
+                label="Reset"
+                title="Reset zoom and rotation"
+                onClick={resetImage}
+              />
+            </div>
+          )}
+        </div>
+
+        <div
+          style={{
             minHeight: 0,
             background: "#334155",
             display: "grid",
             placeItems: "center",
             overflow: "auto",
+            position: "relative",
           }}
         >
           {!document.previewUrl ? (
-            <div
-              style={{
-                width: "min(560px, 90%)",
-                padding: "30px",
-                borderRadius: "18px",
-                background: "white",
-                textAlign: "center",
-                color: "#334155",
-              }}
-            >
-              <div style={{ fontSize: "42px" }}>📄</div>
-
-              <h3 style={{ margin: "12px 0 8px" }}>
-                Preview is unavailable
-              </h3>
-
-              <p
-                style={{
-                  margin: 0,
-                  color: "#64748b",
-                  lineHeight: 1.6,
-                  fontSize: "14px",
-                }}
-              >
-                This file was uploaded during an earlier browser session.
-                Upload the file again while DocsFiles is running to preview it.
-                Permanent previews will be available after secure cloud storage
-                is connected.
-              </p>
-            </div>
+            <PreviewMessage
+              icon="📄"
+              title="Preview is unavailable"
+              message="This file may have been uploaded during an earlier browser session. Upload it again while DocsFiles is running to preview it. Permanent previews will become available after secure cloud storage is connected."
+            />
           ) : isPdf ? (
             <iframe
               src={document.previewUrl}
@@ -187,46 +355,117 @@ export default function DocumentPreview({
               }}
             />
           ) : isImage ? (
-            <img
-              src={document.previewUrl}
-              alt={document.name}
-              style={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-              }}
-            />
-          ) : (
             <div
               style={{
-                width: "min(560px, 90%)",
-                padding: "30px",
-                borderRadius: "18px",
-                background: "white",
-                textAlign: "center",
-                color: "#334155",
+                minWidth: "100%",
+                minHeight: "100%",
+                padding: "28px",
+                display: "grid",
+                placeItems: "center",
               }}
             >
-              <div style={{ fontSize: "42px" }}>📄</div>
-
-              <h3 style={{ margin: "12px 0 8px" }}>
-                No built-in preview for this file type
-              </h3>
-
-              <p
+              <img
+                src={document.previewUrl}
+                alt={document.name}
+                draggable={false}
                 style={{
-                  margin: 0,
-                  color: "#64748b",
-                  lineHeight: 1.6,
-                  fontSize: "14px",
+                  maxWidth: imageZoom <= 1 ? "100%" : "none",
+                  maxHeight: imageZoom <= 1 ? "100%" : "none",
+                  width: imageZoom > 1 ? `${imageZoom * 100}%` : "auto",
+                  height: "auto",
+                  objectFit: "contain",
+                  transform: `rotate(${imageRotation}deg)`,
+                  transformOrigin: "center",
+                  transition: "transform 180ms ease, width 180ms ease",
+                  borderRadius: "8px",
+                  boxShadow: "0 18px 50px rgba(0,0,0,0.3)",
+                  userSelect: "none",
                 }}
-              >
-                Download the file to open it with the appropriate application.
-              </p>
+              />
             </div>
+          ) : (
+            <PreviewMessage
+              icon="📄"
+              title="No built-in preview for this file type"
+              message="Download this document and open it with the appropriate application on your computer."
+            />
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function ToolbarButton({
+  label,
+  title,
+  onClick,
+  compact = false,
+}: {
+  label: string;
+  title: string;
+  onClick: () => void;
+  compact?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      style={{
+        minWidth: compact ? "38px" : undefined,
+        height: "38px",
+        padding: compact ? "0 10px" : "0 12px",
+        borderRadius: "10px",
+        background: "white",
+        border: "1px solid #cbd5e1",
+        color: "#334155",
+        cursor: "pointer",
+        fontWeight: 800,
+        fontSize: "12px",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+function PreviewMessage({
+  icon,
+  title,
+  message,
+}: {
+  icon: string;
+  title: string;
+  message: string;
+}) {
+  return (
+    <div
+      style={{
+        width: "min(560px, 90%)",
+        padding: "32px",
+        borderRadius: "18px",
+        background: "white",
+        textAlign: "center",
+        color: "#334155",
+        boxShadow: "0 18px 50px rgba(0,0,0,0.18)",
+      }}
+    >
+      <div style={{ fontSize: "44px" }}>{icon}</div>
+
+      <h3 style={{ margin: "12px 0 8px" }}>{title}</h3>
+
+      <p
+        style={{
+          margin: 0,
+          color: "#64748b",
+          lineHeight: 1.65,
+          fontSize: "14px",
+        }}
+      >
+        {message}
+      </p>
     </div>
   );
 }
