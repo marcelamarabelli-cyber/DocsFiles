@@ -1017,7 +1017,7 @@ export default function Home() {
                     color: "white",
                   }}
                 >
-                  🔗 Create Client Link
+                  🔗 📂 Open Client Portal
                 </button>
 
                 <button
