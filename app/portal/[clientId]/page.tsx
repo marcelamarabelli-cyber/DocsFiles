@@ -85,7 +85,36 @@ export default function ClientPortalPage() {
 
     return folderDocuments.length > 0;
   }).length;
+const clientRequests = documentRequests.filter(
+  (request) => request.clientId === clientId,
+);
 
+const missingItems = clientRequests.filter(
+  (request) =>
+    request.requested &&
+    (request.status === "Waiting" ||
+      request.status === "Replace Requested"),
+).length;
+
+const reviewedDocuments = clientDocuments.filter(
+  (document) => document.reviewed,
+).length;
+
+const folderHealth = documentFolders.map((folder) => {
+  const folderDocuments = clientDocuments.filter(
+    (document) => document.folderId === folder.id,
+  );
+
+  return {
+    id: folder.id,
+    title: folder.title,
+    icon: folder.icon,
+    documentCount: folderDocuments.length,
+    reviewedCount: folderDocuments.filter(
+      (document) => document.reviewed,
+    ).length,
+  };
+});
   const portalBackground = {
     minHeight: "100vh",
     background:
