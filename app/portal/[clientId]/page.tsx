@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import UploadZone from "../../components/UploadZone";
 import ClientRequestChecklist from "../../components/ClientRequestChecklist";
 import ClientOverviewCard from "@/app/components/ClientOverviewCard";
+import TaxWorkflow from "../../components/TaxWorkflow";
+import ActivityTimeline from "../../components/ActivityTimeline";
 import {
   documentFolders,
   type Client,
@@ -372,7 +374,25 @@ export default function ClientPortalPage() {
         completedItems={reviewedDocuments}
         totalItems={Math.max(totalFiles, 1)}
         status={client.status}
-      />
+      /><ClientOverviewCard
+  clientName={getClientName(client)}
+  taxYear={Number(client.taxYear)}
+  filingStatus="Married Filing Jointly"
+  email={client.email}
+  phone={client.phone}
+  completedItems={reviewedDocuments}
+  totalItems={Math.max(totalFiles, 1)}
+  status={client.status}
+/>
+
+<TaxWorkflow
+  currentStatus={client.status}
+  onStatusChange={(status) => {
+    console.log("Status changed:", status);
+  }}
+/>
+
+<ActivityTimeline />
 
       <div
         style={{
