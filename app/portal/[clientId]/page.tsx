@@ -392,7 +392,10 @@ export default function ClientPortalPage() {
   }}
 />
 
-<ActivityTimeline />
+<ActivityTimeline
+  clientId={client.id}
+  clientName={getClientName(client)}
+/>
 
       <div
         style={{
