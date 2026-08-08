@@ -8,6 +8,7 @@ import ClientOverviewCard from "@/app/components/ClientOverviewCard";
 import TaxWorkflow from "../../components/TaxWorkflow";
 import ActivityTimeline from "../../components/ActivityTimeline";
 import PreFilingCenter from "../../components/PrefilingCenter";
+import FilingCenter from "../../components/FilingCenter";
 import {
   documentFolders,
   type Client,
@@ -24,6 +25,7 @@ import {
   saveDocuments,
 } from "../../lib/storage";
 import { findMatchingRequest } from "../../lib/requestMatcher";
+import { addClientActivity } from "../../lib/activity";
 
 type DocumentWithDate = StoredDocument & {
   uploadedAt?: string;
@@ -82,6 +84,7 @@ export default function ClientPortalPage() {
   const [accountantNotes, setAccountantNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0);
 
   useEffect(() => {
     const clients = loadClients();
@@ -404,9 +407,37 @@ export default function ClientPortalPage() {
         }}
       />
 
+      <FilingCenter
+        clientId={client.id}
+        clientName={getClientName(client)}
+        currentStatus={client.status}
+        documents={clientDocuments}
+        onStatusChange={(status) => {
+          const nextClient = { ...client, status };
+          const nextClients = loadClients().map((savedClient) =>
+            savedClient.id === client.id ? nextClient : savedClient,
+          );
+          saveClients(nextClients);
+          setClient(nextClient);
+
+          addClientActivity({
+            clientId: client.id,
+            type: status === "Completed" ? "return-completed" : "status-changed",
+            title: status === "Completed" ? "Tax Engagement Completed" : "Tax Return Filed",
+            description:
+              status === "Completed"
+                ? `${getClientName(client)}'s return workflow was marked complete.`
+                : `${getClientName(client)}'s return was marked filed.`,
+            icon: status === "Completed" ? "✅" : "📤",
+          });
+          setActivityRefreshKey((current) => current + 1);
+        }}
+      />
+
       <ActivityTimeline
         clientId={client.id}
         clientName={getClientName(client)}
+        refreshKey={activityRefreshKey}
       />
 
       <div
