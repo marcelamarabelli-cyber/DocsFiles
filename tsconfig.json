@@ -39,6 +39,7 @@
   "exclude": [
     "node_modules",
     "Package5-Files",
-    "Package5-Final-Files"
+    "Package5-Final-Files",
+    "Package6-Ready 2"
   ]
 }
