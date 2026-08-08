@@ -11,6 +11,7 @@ import PreFilingCenter from "../../components/PrefilingCenter";
 import FilingCenter from "../../components/FilingCenter";
 import PreparerWorkpad from "../../components/PreparerWorkpad";
 import ReviewChecklist from "../../components/ReviewChecklist";
+import CompletionCenter from "../../components/CompletionCenter";
 import {
   documentFolders,
   type Client,
@@ -441,6 +442,15 @@ export default function ClientPortalPage() {
           });
           setActivityRefreshKey((current) => current + 1);
         }}
+      />
+
+      <CompletionCenter
+        clientId={client.id}
+        clientName={getClientName(client)}
+        currentStatus={client.status}
+        onActivityLogged={() =>
+          setActivityRefreshKey((current) => current + 1)
+        }
       />
 
       <ActivityTimeline
