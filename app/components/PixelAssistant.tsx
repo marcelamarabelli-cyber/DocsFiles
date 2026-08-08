@@ -58,7 +58,7 @@ export default function PixelAssistant({
     setTreatMessage("");
     setMood("sniffing");
 
-    later(() => setMood("digging"), 450);
+    later(() => setMood("digging"), 600);
     later(() => {
       setSettledQuery(cleaned);
       const lower = cleaned.toLowerCase();
@@ -66,6 +66,7 @@ export default function PixelAssistant({
 
       if (!found) {
         setMood("empty");
+        later(() => setMood("idle"), 3000);
         return;
       }
 
@@ -74,24 +75,24 @@ export default function PixelAssistant({
         setMood("reward");
         setShowTreat(true);
         setTreatMessage("Good fetch, Pixel! Treat earned. 🦴");
-      }, 700);
+      }, 900);
       later(() => {
         setShowTreat(false);
         setTreatMessage("Crunch! Good boy, Pixel. 🐾");
-      }, 2500);
-      later(() => setMood("found"), 3800);
-    }, 1350);
+      }, 2800);
+      later(() => setMood("found"), 4300);
+    }, 1650);
   };
 
   const message =
     mood === "hello"
       ? "Welcome back! Pixel is on document duty. 🐾"
       : mood === "sniffing"
-        ? "Sniff sniff... I know that file is around here somewhere!"
+        ? "Sniff sniff... I caught the scent!"
         : mood === "digging"
           ? "Digging through the folders... paws at work!"
           : mood === "reward"
-            ? "I found it! Now where’s my bone? 😄"
+            ? "Found it! I brought it back — bone time! 😄"
             : mood === "found"
               ? `Found it! ${matches.length === 1 ? "One file" : `${matches.length} files`} came back with me.`
               : mood === "empty"
@@ -100,14 +101,39 @@ export default function PixelAssistant({
                   ? `Tell me what file to fetch${clientName ? ` for ${clientName}` : ""}.`
                   : "I’m ready whenever you are. 🐶";
 
+  const moodLabel =
+    mood === "hello" ? "Saying hello"
+      : mood === "sniffing" ? "Sniffing"
+        : mood === "digging" ? "Digging"
+          : mood === "found" ? "File found"
+            : mood === "reward" ? "Treat time"
+              : mood === "empty" ? "No match"
+                : "On duty";
+
   return (
     <section className={`pixel-assistant pixel-${mood}`} aria-live="polite">
       <div className="pixel-scene">
+        <div className="pixel-ground-shadow" aria-hidden="true" />
+        <div className="pixel-status-chip" aria-hidden="true">{moodLabel}</div>
+
+        {mood === "hello" && <div className="pixel-wave" aria-hidden="true">👋</div>}
+        {mood === "sniffing" && <div className="pixel-sniff-cloud" aria-hidden="true">〰️ 〰️</div>}
         {(mood === "sniffing" || mood === "digging") && (
           <div className="pixel-paw-trail" aria-hidden="true">🐾 · 🐾 · 🐾</div>
         )}
-        {mood === "digging" && <div className="pixel-dirt" aria-hidden="true">🟤 · 🟤 · 🟤</div>}
+        {mood === "digging" && (
+          <>
+            <div className="pixel-dirt" aria-hidden="true">🟤 · 🟤 · 🟤</div>
+            <div className="pixel-dig-paws" aria-hidden="true">🐾 🐾</div>
+          </>
+        )}
         {(mood === "found" || mood === "reward") && <div className="pixel-file-fly" aria-hidden="true">📄</div>}
+        {(mood === "found" || mood === "reward") && matches[0] && (
+          <div className="pixel-mouth-file" aria-hidden="true">
+            <span>📄</span>
+            <small>{matches[0].name}</small>
+          </div>
+        )}
         {showTreat && <div className="pixel-bone" aria-hidden="true">🦴</div>}
         <div className="pixel-tail" aria-hidden="true">〰️</div>
         <img
@@ -115,6 +141,7 @@ export default function PixelAssistant({
           alt="Pixel, the DocsFiles puppy wearing his TaxesDeal hat"
           className="pixel-image"
         />
+        <div className="pixel-blink" aria-hidden="true" />
         {mood === "reward" && <div className="pixel-stars" aria-hidden="true">✨ ⭐ ✨</div>}
       </div>
 
@@ -139,10 +166,10 @@ export default function PixelAssistant({
                 className="pixel-fetch-button"
                 disabled={!query.trim() || mood === "sniffing" || mood === "digging"}
               >
-                {mood === "sniffing" || mood === "digging" ? "Digging..." : "Fetch"}
+                {mood === "sniffing" ? "Sniffing..." : mood === "digging" ? "Digging..." : "Fetch"}
               </button>
               <span className="pixel-search-icon" aria-hidden="true">
-                {mood === "digging" ? "⛏️" : mood === "found" || mood === "reward" ? "🦴" : "🐾"}
+                {mood === "sniffing" ? "👃" : mood === "digging" ? "⛏️" : mood === "found" || mood === "reward" ? "🦴" : "🐾"}
               </span>
             </form>
 

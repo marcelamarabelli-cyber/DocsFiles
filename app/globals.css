@@ -108,3 +108,40 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pixel-sniffing .pixel-image, .pixel-reward .pixel-image, .pixel-paw-trail, .pixel-stars, .pixel-treat-message { animation:none !important; }
 }
+
+/* Package 15 — Pixel Comes Alive */
+.pixel-idle .pixel-image { animation: pixelBreathe 2.6s ease-in-out infinite; }
+.pixel-idle .pixel-tail { animation-duration:.42s; }
+.pixel-hello .pixel-image { animation: pixelHello 1.05s ease-in-out 3; }
+.pixel-hello .pixel-tail { animation-duration:.20s; }
+.pixel-scene { isolation:isolate; }
+.pixel-ground-shadow { position:absolute; left:28px; right:28px; bottom:8px; height:18px; border-radius:50%; background:rgba(15,23,42,.11); filter:blur(5px); z-index:-1; animation:pixelShadow 2.6s ease-in-out infinite; }
+.pixel-status-chip { position:absolute; top:2px; left:4px; z-index:6; padding:4px 8px; border-radius:999px; background:rgba(255,255,255,.93); border:1px solid #dbe5f0; box-shadow:0 5px 14px rgba(15,23,42,.08); color:#475569; font-size:9px; font-weight:900; letter-spacing:.45px; text-transform:uppercase; }
+.pixel-wave { position:absolute; right:5px; top:12px; z-index:6; font-size:30px; transform-origin:60% 90%; animation:pixelWave .42s ease-in-out 6 alternate; }
+.pixel-sniff-cloud { position:absolute; right:3px; top:56px; z-index:6; font-size:20px; color:#94a3b8; animation:pixelSniffCloud .7s ease-out infinite; }
+.pixel-dig-paws { position:absolute; left:42px; bottom:10px; z-index:5; font-size:19px; letter-spacing:10px; animation:pixelDigPaws .18s ease-in-out infinite alternate; }
+.pixel-mouth-file { position:absolute; left:62px; bottom:16px; z-index:8; width:82px; min-height:38px; padding:4px 6px; display:flex; align-items:center; gap:4px; border-radius:7px; border:2px solid #fff; background:#ffffff; box-shadow:0 8px 20px rgba(15,23,42,.2); animation:pixelMouthFile .65s cubic-bezier(.2,.8,.2,1) both; transform:rotate(-5deg); }
+.pixel-mouth-file span { font-size:18px; }
+.pixel-mouth-file small { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:7px; font-weight:900; color:#334155; }
+.pixel-blink { position:absolute; width:82px; height:10px; top:63px; left:34px; z-index:7; pointer-events:none; border-radius:50%; background:rgba(15,23,42,.26); opacity:0; animation:pixelBlink 5.5s infinite; }
+.pixel-reward .pixel-bubble { animation:pixelBubblePop .5s ease-out both; }
+.pixel-reward .pixel-assistant { overflow:visible; }
+.pixel-empty .pixel-image { animation:pixelOops .55s ease-in-out 2; }
+.pixel-empty .pixel-tail { animation-duration:.8s; }
+@keyframes pixelBreathe { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-3px) scale(1.018)} }
+@keyframes pixelHello { 0%,100%{transform:translateY(0) rotate(0) scale(1)} 35%{transform:translateY(-10px) rotate(-4deg) scale(1.035)} 70%{transform:translateY(-3px) rotate(4deg) scale(1.02)} }
+@keyframes pixelShadow { 0%,100%{transform:scaleX(1); opacity:.7} 50%{transform:scaleX(.82); opacity:.42} }
+@keyframes pixelWave { from{transform:rotate(-20deg) translateY(1px)} to{transform:rotate(25deg) translateY(-2px)} }
+@keyframes pixelSniffCloud { 0%{transform:translateX(-4px) scale(.8); opacity:0} 45%{opacity:.85} 100%{transform:translateX(17px) scale(1.25); opacity:0} }
+@keyframes pixelDigPaws { from{transform:translate(-4px,1px) rotate(-7deg)} to{transform:translate(5px,-2px) rotate(7deg)} }
+@keyframes pixelMouthFile { 0%{transform:translate(90px,-75px) rotate(18deg) scale(.55); opacity:0} 70%{transform:translate(-4px,3px) rotate(-8deg) scale(1.06); opacity:1} 100%{transform:translate(0,0) rotate(-5deg) scale(1); opacity:1} }
+@keyframes pixelBlink { 0%,43%,47%,100%{opacity:0; transform:scaleY(.1)} 44%,46%{opacity:.22; transform:scaleY(1)} }
+@keyframes pixelBubblePop { 0%{transform:scale(.97); opacity:.55} 70%{transform:scale(1.015); opacity:1} 100%{transform:scale(1)} }
+@keyframes pixelOops { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-5deg)} 75%{transform:rotate(5deg)} }
+@media (max-width:680px) {
+  .pixel-status-chip { left:50%; transform:translateX(-50%); }
+  .pixel-mouth-file { left:50%; margin-left:-10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-idle .pixel-image, .pixel-hello .pixel-image, .pixel-ground-shadow, .pixel-wave, .pixel-sniff-cloud, .pixel-dig-paws, .pixel-mouth-file, .pixel-blink, .pixel-reward .pixel-bubble, .pixel-empty .pixel-image { animation:none !important; }
+}
