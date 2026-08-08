@@ -84,3 +84,27 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .pixel-image, .pixel-tail, .pixel-dirt, .pixel-file-fly, .pixel-bone { animation:none !important; }
 }
+
+/* Package 14 — Pixel Search Adventure */
+.pixel-sniffing .pixel-image { animation: pixelSniff .35s ease-in-out infinite alternate; }
+.pixel-reward .pixel-image { animation: pixelCelebrate .55s ease-in-out 3; }
+.pixel-reward .pixel-tail { animation-duration:.16s; }
+.pixel-paw-trail { position:absolute; left:0; bottom:7px; font-size:18px; opacity:.85; animation:pixelPaws .8s ease-in-out infinite alternate; }
+.pixel-stars { position:absolute; right:-6px; top:-6px; font-size:22px; animation:pixelStars .8s ease-in-out infinite alternate; z-index:4; }
+.pixel-fetch-button { border:0; border-radius:12px; padding:12px 18px; font:inherit; font-weight:800; color:white; background:linear-gradient(135deg,#2563eb,#7c3aed); cursor:pointer; white-space:nowrap; box-shadow:0 8px 20px rgba(79,70,229,.18); }
+.pixel-fetch-button:hover:not(:disabled) { transform:translateY(-1px); box-shadow:0 10px 24px rgba(79,70,229,.24); }
+.pixel-fetch-button:disabled { opacity:.55; cursor:not-allowed; transform:none; box-shadow:none; }
+.pixel-treat-message { margin-top:10px; display:inline-flex; align-items:center; gap:6px; padding:8px 12px; border-radius:999px; background:#fff7ed; border:1px solid #fed7aa; color:#9a3412; font-size:13px; font-weight:800; animation:pixelTreatMessage .45s ease-out both; }
+.pixel-returned-label { margin-left:auto; padding:4px 8px; border-radius:999px; background:#dcfce7; color:#166534; font-size:11px; font-weight:900; text-transform:uppercase; letter-spacing:.45px; }
+@keyframes pixelSniff { from{transform:translateX(-2px) rotate(-1deg) scale(1)} to{transform:translateX(3px) rotate(2deg) scale(1.02)} }
+@keyframes pixelCelebrate { 0%,100%{transform:translateY(0) rotate(0) scale(1)} 35%{transform:translateY(-12px) rotate(-5deg) scale(1.04)} 70%{transform:translateY(-4px) rotate(5deg) scale(1.02)} }
+@keyframes pixelPaws { from{transform:translateX(-6px); opacity:.4} to{transform:translateX(8px); opacity:1} }
+@keyframes pixelStars { from{transform:scale(.8) rotate(-8deg); opacity:.5} to{transform:scale(1.15) rotate(8deg); opacity:1} }
+@keyframes pixelTreatMessage { from{transform:translateY(8px) scale(.96); opacity:0} to{transform:translateY(0) scale(1); opacity:1} }
+@media (max-width: 700px) {
+  .pixel-search-row { flex-wrap:wrap; }
+  .pixel-fetch-button { flex:1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-sniffing .pixel-image, .pixel-reward .pixel-image, .pixel-paw-trail, .pixel-stars, .pixel-treat-message { animation:none !important; }
+}
