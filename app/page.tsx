@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import FolderGrid from "./components/FolderGrid";
 import UploadZone from "./components/UploadZone";
 import RequestCenter from "./components/RequestCenter";
+import PixelAssistant from "./components/PixelAssistant";
 import {
   documentFolders,
   type Client,
@@ -529,6 +530,8 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <PixelAssistant mode="welcome" />
 
         <section
           style={{

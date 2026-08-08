@@ -24,3 +24,63 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Package 13 — Pixel Comes Alive */
+.pixel-assistant {
+  max-width: 1180px;
+  margin: 18px auto 0;
+  padding: 18px 22px;
+  border: 1px solid #cbd5e1;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f3ff 55%, #eff6ff 100%);
+  box-shadow: 0 14px 35px rgba(37, 99, 235, 0.10);
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 20px;
+  align-items: center;
+  overflow: hidden;
+  position: relative;
+}
+.pixel-scene { position: relative; height: 150px; display: grid; place-items: center; }
+.pixel-image {
+  width: 138px;
+  height: 138px;
+  object-fit: cover;
+  object-position: 50% 30%;
+  border-radius: 50%;
+  border: 4px solid white;
+  box-shadow: 0 8px 24px rgba(15,23,42,.18);
+  transform-origin: 50% 85%;
+}
+.pixel-hello .pixel-image, .pixel-found .pixel-image { animation: pixelHappy .65s ease-in-out 2; }
+.pixel-digging .pixel-image { animation: pixelDig .22s ease-in-out infinite alternate; }
+.pixel-tail { position:absolute; right:-2px; bottom:27px; font-size:42px; transform-origin:left center; animation: pixelWag .32s ease-in-out infinite alternate; z-index:0; }
+.pixel-image { z-index:1; }
+.pixel-dirt { position:absolute; bottom:4px; left:6px; font-size:20px; animation: pixelDirt .55s ease-in-out infinite alternate; }
+.pixel-file-fly { position:absolute; right:0; top:8px; font-size:34px; animation: pixelFileFly .75s ease-out both; z-index:3; }
+.pixel-bone { position:absolute; left:-2px; top:2px; font-size:34px; z-index:4; animation: pixelTreat 1.3s ease-in-out both; }
+.pixel-panel { min-width:0; }
+.pixel-name-row { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; color:#172033; }
+.pixel-name-row strong { font-size:22px; }
+.pixel-name-row span { font-size:12px; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.6px; }
+.pixel-bubble { margin-top:8px; color:#334155; font-weight:700; line-height:1.45; }
+.pixel-search-row { margin-top:14px; display:flex; align-items:center; gap:8px; }
+.pixel-search-row input { flex:1; min-width:0; padding:12px 14px; border:1px solid #cbd5e1; border-radius:12px; font:inherit; background:white; color:#172033; outline:none; }
+.pixel-search-row input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,.12); }
+.pixel-search-icon { font-size:24px; }
+.pixel-results { margin-top:10px; display:grid; gap:7px; }
+.pixel-result-item { display:flex; gap:8px; align-items:center; padding:8px 10px; border-radius:10px; background:white; border:1px solid #dbe5f0; font-size:13px; font-weight:700; color:#334155; }
+@keyframes pixelWag { from { transform:rotate(-18deg); } to { transform:rotate(18deg); } }
+@keyframes pixelHappy { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-8px) rotate(-3deg)} }
+@keyframes pixelDig { from{transform:translate(-3px,1px) rotate(-2deg)} to{transform:translate(3px,-2px) rotate(2deg)} }
+@keyframes pixelDirt { from{transform:translateX(-4px) scale(.9); opacity:.55} to{transform:translateX(5px) scale(1.08); opacity:1} }
+@keyframes pixelFileFly { 0%{transform:translate(70px,25px) rotate(22deg); opacity:0} 100%{transform:translate(-75px,72px) rotate(-7deg); opacity:1} }
+@keyframes pixelTreat { 0%{transform:translateY(-30px) rotate(-30deg); opacity:0} 45%{opacity:1} 100%{transform:translate(75px,78px) rotate(15deg); opacity:0} }
+@media (max-width: 680px) {
+  .pixel-assistant { grid-template-columns:1fr; text-align:center; }
+  .pixel-scene { height:135px; }
+  .pixel-search-row { text-align:left; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pixel-image, .pixel-tail, .pixel-dirt, .pixel-file-fly, .pixel-bone { animation:none !important; }
+}

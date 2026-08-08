@@ -12,6 +12,7 @@ import FilingCenter from "../../components/FilingCenter";
 import PreparerWorkpad from "../../components/PreparerWorkpad";
 import ReviewChecklist from "../../components/ReviewChecklist";
 import CompletionCenter from "../../components/CompletionCenter";
+import PixelAssistant from "../../components/PixelAssistant";
 import {
   documentFolders,
   type Client,
@@ -382,6 +383,12 @@ export default function ClientPortalPage() {
         completedItems={reviewedDocuments}
         totalItems={Math.max(totalFiles, 1)}
         status={client.status}
+      />
+
+      <PixelAssistant
+        mode="finder"
+        clientName={getClientName(client)}
+        documents={clientDocuments}
       />
 
       <TaxWorkflow
