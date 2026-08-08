@@ -7,6 +7,7 @@ export type ClientStatus =
   | "In Preparation"
   | "Ready for Review"
   | "Ready to File"
+  | "Filed"
   | "Completed";
 
 export type DocumentFolderId =
@@ -80,6 +81,7 @@ export const statusOptions: ClientStatus[] = [
   "In Preparation",
   "Ready for Review",
   "Ready to File",
+  "Filed",
   "Completed",
 ];
 

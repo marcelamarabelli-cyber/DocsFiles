@@ -7,6 +7,7 @@ import ClientRequestChecklist from "../../components/ClientRequestChecklist";
 import ClientOverviewCard from "@/app/components/ClientOverviewCard";
 import TaxWorkflow from "../../components/TaxWorkflow";
 import ActivityTimeline from "../../components/ActivityTimeline";
+import PreFilingCenter from "../../components/PrefilingCenter";
 import {
   documentFolders,
   type Client,
@@ -18,6 +19,7 @@ import {
   loadClients,
   loadDocumentRequests,
   loadDocuments,
+  saveClients,
   saveDocumentRequests,
   saveDocuments,
 } from "../../lib/storage";
@@ -374,28 +376,38 @@ export default function ClientPortalPage() {
         completedItems={reviewedDocuments}
         totalItems={Math.max(totalFiles, 1)}
         status={client.status}
-      /><ClientOverviewCard
-  clientName={getClientName(client)}
-  taxYear={Number(client.taxYear)}
-  filingStatus="Married Filing Jointly"
-  email={client.email}
-  phone={client.phone}
-  completedItems={reviewedDocuments}
-  totalItems={Math.max(totalFiles, 1)}
-  status={client.status}
-/>
+      />
 
-<TaxWorkflow
-  currentStatus={client.status}
-  onStatusChange={(status) => {
-    console.log("Status changed:", status);
-  }}
-/>
+      <TaxWorkflow
+        currentStatus={client.status}
+        onStatusChange={(status) => {
+          const nextClient = { ...client, status: status as Client["status"] };
+          const nextClients = loadClients().map((savedClient) =>
+            savedClient.id === client.id ? nextClient : savedClient,
+          );
+          saveClients(nextClients);
+          setClient(nextClient);
+        }}
+      />
 
-<ActivityTimeline
-  clientId={client.id}
-  clientName={getClientName(client)}
-/>
+      <PreFilingCenter
+        documents={clientDocuments}
+        requests={clientRequests}
+        currentStatus={client.status}
+        onReadyToFile={() => {
+          const nextClient = { ...client, status: "Ready to File" as const };
+          const nextClients = loadClients().map((savedClient) =>
+            savedClient.id === client.id ? nextClient : savedClient,
+          );
+          saveClients(nextClients);
+          setClient(nextClient);
+        }}
+      />
+
+      <ActivityTimeline
+        clientId={client.id}
+        clientName={getClientName(client)}
+      />
 
       <div
         style={{
