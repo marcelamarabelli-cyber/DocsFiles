@@ -10,6 +10,7 @@ import ActivityTimeline from "../../components/ActivityTimeline";
 import PreFilingCenter from "../../components/PrefilingCenter";
 import FilingCenter from "../../components/FilingCenter";
 import PreparerWorkpad from "../../components/PreparerWorkpad";
+import ReviewChecklist from "../../components/ReviewChecklist";
 import {
   documentFolders,
   type Client,
@@ -398,6 +399,8 @@ export default function ClientPortalPage() {
         clientId={client.id}
         clientName={getClientName(client)}
       />
+
+      <ReviewChecklist clientId={client.id} />
 
       <PreFilingCenter
         documents={clientDocuments}
