@@ -9,6 +9,7 @@ import TaxWorkflow from "../../components/TaxWorkflow";
 import ActivityTimeline from "../../components/ActivityTimeline";
 import PreFilingCenter from "../../components/PrefilingCenter";
 import FilingCenter from "../../components/FilingCenter";
+import PreparerWorkpad from "../../components/PreparerWorkpad";
 import {
   documentFolders,
   type Client,
@@ -391,6 +392,11 @@ export default function ClientPortalPage() {
           saveClients(nextClients);
           setClient(nextClient);
         }}
+      />
+
+      <PreparerWorkpad
+        clientId={client.id}
+        clientName={getClientName(client)}
       />
 
       <PreFilingCenter
