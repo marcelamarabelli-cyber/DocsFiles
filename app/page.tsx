@@ -380,16 +380,22 @@ export default function Home() {
             </div>
 
             <div>
-              <div
-                style={{
-                  fontSize: "23px",
-                  fontWeight: 900,
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                DocsFiles
-              </div>
-
+<div
+  style={{
+    width: "170px",
+    maxWidth: "100%",
+  }}
+>
+  <img
+    src="/docsfiles-logo.png"
+    alt="DocsFiles"
+    style={{
+      display: "block",
+      width: "100%",
+      height: "auto",
+    }}
+  />
+</div>
               <div
                 style={{
                   fontSize: "12px",

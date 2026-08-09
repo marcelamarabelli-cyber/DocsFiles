@@ -13,6 +13,7 @@ import PreparerWorkpad from "../../components/PreparerWorkpad";
 import ReviewChecklist from "../../components/ReviewChecklist";
 import CompletionCenter from "../../components/CompletionCenter";
 import PixelAssistant from "../../components/PixelAssistant";
+import DocumentPreview from "../../components/DocumentPreview";
 import {
   documentFolders,
   type Client,
