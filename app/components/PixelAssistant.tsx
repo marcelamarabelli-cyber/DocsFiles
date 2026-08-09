@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type { StoredDocument } from "../types/client";
-
+import { matchesDocumentSearch } from "../lib/requestMatcher";
 type PixelAssistantProps = {
   mode?: "welcome" | "finder";
   clientName?: string;
@@ -41,12 +41,15 @@ export default function PixelAssistant({
 
   useEffect(() => clearTimers, []);
 
-  const matches = useMemo(() => {
-    const cleaned = settledQuery.trim().toLowerCase();
-    if (!cleaned) return [];
-    return documents.filter((doc) => doc.name.toLowerCase().includes(cleaned)).slice(0, 4);
-  }, [documents, settledQuery]);
+const matches = useMemo(() => {
+  const cleaned = settledQuery.trim();
 
+  if (!cleaned) return [];
+
+  return documents
+    .filter((doc) => matchesDocumentSearch(doc, cleaned))
+    .slice(0, 4);
+}, [documents, settledQuery]);
   const runSearch = (event?: FormEvent) => {
     event?.preventDefault();
     const cleaned = query.trim();
@@ -61,9 +64,9 @@ export default function PixelAssistant({
     later(() => setMood("digging"), 600);
     later(() => {
       setSettledQuery(cleaned);
-      const lower = cleaned.toLowerCase();
-      const found = documents.some((doc) => doc.name.toLowerCase().includes(lower));
-
+const found = documents.some((doc) =>
+  matchesDocumentSearch(doc, cleaned),
+);
       if (!found) {
         setMood("empty");
         later(() => setMood("idle"), 3000);

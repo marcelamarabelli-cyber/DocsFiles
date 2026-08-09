@@ -173,4 +173,58 @@ export function statusForReviewedDocument(
   return document.uploadedBy === "Client"
     ? ("Uploaded" as const)
     : ("Under Review" as const);
+
+  
+}
+
+
+export function matchesDocumentSearch(
+  document: StoredDocument,
+  query: string,
+) {
+  const normalizedQuery = normalize(query);
+
+  if (!normalizedQuery) {
+    return false;
+  }
+
+  const searchableValues = [
+    document.name,
+    document.folderId,
+    document.type,
+  ];
+
+  const normalizedValues = searchableValues.map((value) =>
+    normalize(String(value)),
+  );
+
+  if (
+    normalizedValues.some((value) =>
+      value.includes(normalizedQuery),
+    )
+  ) {
+    return true;
+  }
+
+  for (const group of keywordGroups) {
+    const queryMatchesGroup = group.keywords.some((keyword) =>
+      normalizedQuery.includes(normalize(keyword)),
+    );
+
+    if (!queryMatchesGroup) {
+      continue;
+    }
+
+    const documentMatchesGroup = group.keywords.some((keyword) =>
+      normalizedValues.some((value) =>
+        value.includes(normalize(keyword)),
+      ),
+    );
+
+    if (documentMatchesGroup) {
+      return true;
+    }
+  }
+
+  return false;
 }
