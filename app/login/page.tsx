@@ -1,28 +1,48 @@
 "use client";
-
+import { createClient } from "../utils/supabase/client";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-
+  const supabase = createClient();
+const searchParams = useSearchParams();
+const redirectTo = searchParams.get("redirect") || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
 
-    if (!email.trim() || !password.trim()) {
-      setMessage("Please enter your email and password.");
-      return;
-    }
-
-    // Temporary screen only.
-    // Real authentication will be connected securely in the next stage.
-    setMessage("Login screen ready — secure authentication coming next.");
+  if (!email.trim() || !password.trim()) {
+    setMessage("Please enter your email and password.");
+    return;
   }
+
+  setMessage("Signing you in...");
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password,
+  });
+
+  if (error) {
+    setMessage(error.message);
+    return;
+  }
+
+  if (!data.user) {
+    setMessage("Unable to sign in.");
+    return;
+  }
+
+  setMessage("Sign in successful.");
+
+  router.push(redirectTo);
+  router.refresh();
+}
 
   return (
     <main

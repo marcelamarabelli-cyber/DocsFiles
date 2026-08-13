@@ -1,7 +1,7 @@
 "use client";
-
+import { createClient } from "../../utils/supabase/client";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import UploadZone from "../../components/UploadZone";
 import ClientRequestChecklist from "../../components/ClientRequestChecklist";
 import ClientOverviewCard from "@/app/components/ClientOverviewCard";
@@ -79,7 +79,8 @@ function clampPercent(value: number) {
 export default function ClientPortalPage() {
   const params = useParams<{ clientId: string }>();
   const clientId = params.clientId;
-
+const supabase = useMemo(() => createClient(), []);
+const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
   const [documentRequests, setDocumentRequests] =
@@ -89,8 +90,27 @@ export default function ClientPortalPage() {
   const [accountantNotes, setAccountantNotes] = useState("");
   const [notesSaved, setNotesSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activityRefreshKey, setActivityRefreshKey] = useState(0);
+useEffect(() => {
+  async function checkSession() {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
 
+    if (!session?.user) {
+      const portalPath = `/portal/${clientId}`;
+      router.replace(
+        `/login?redirect=${encodeURIComponent(portalPath)}`
+      );
+      return;
+    }
+
+    setAuthChecked(true);
+  }
+
+  checkSession();
+}, [clientId, router, supabase]);
   useEffect(() => {
     const clients = loadClients();
     const matchingClient =
@@ -259,7 +279,7 @@ export default function ClientPortalPage() {
     boxShadow: "0 10px 28px rgba(15,23,42,0.06)",
   };
 
-  if (!loaded) {
+  if (!authChecked || !loaded) {
     return (
       <main
         style={{

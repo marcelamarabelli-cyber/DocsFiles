@@ -1300,10 +1300,12 @@ export default function Home() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    const portalUrl = `${window.location.origin}/portal/${selectedClient.id}`;
-                    window.open(portalUrl, "_blank", "noopener,noreferrer");
-                  }}
+                 onClick={() => {
+  const portalPath = `/portal/${selectedClient.id}`;
+const loginUrl = `/login?redirect=${encodeURIComponent(portalPath)}`;
+window.open(loginUrl, "_blank", "noopener,noreferrer");
+}}
+                  
                   style={{
                     ...buttonBase,
                     padding: "12px",
