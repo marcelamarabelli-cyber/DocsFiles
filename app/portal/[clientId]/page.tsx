@@ -105,7 +105,26 @@ useEffect(() => {
       );
       return;
     }
+const clients = loadClients();
+const matchingClient =
+  clients.find((currentClient) => currentClient.id === clientId) ?? null;
 
+const signedInEmail = session.user.email?.trim().toLowerCase();
+const clientEmail = matchingClient?.email?.trim().toLowerCase();
+const adminEmail =
+  process.env.NEXT_PUBLIC_DOCSFILES_ADMIN_EMAIL?.trim().toLowerCase();
+
+const isAdmin = !!adminEmail && signedInEmail === adminEmail;
+if (
+  !matchingClient ||
+  !signedInEmail ||
+  (!isAdmin && signedInEmail !== clientEmail)
+) {
+  router.replace(
+  `/login?redirect=${encodeURIComponent(`/portal/${clientId}`)}`
+);
+  return;
+}
     setAuthChecked(true);
   }
 

@@ -519,7 +519,7 @@ export default function Home() {
     }));
   }
 
-  function createClient(event: FormEvent<HTMLFormElement>) {
+  async function createClient(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const primaryName = form.primaryName.trim();
@@ -549,7 +549,41 @@ export default function Home() {
       createdAt: new Date().toISOString(),
     };
 
-    setClients((current) => [newClient, ...current]);
+   if (newClient.email) {
+  const portalPath = `/portal/${newClient.id}`;
+  const redirectTo = `${window.location.origin}/login?redirect=${encodeURIComponent(portalPath)}`;
+
+  try {
+    const response = await fetch("/api/invite-client", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: newClient.email,
+        redirectTo,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setMessage(
+        `Client was not created because the invitation failed: ${
+          result.error || "Unable to send invitation."
+        }`
+      );
+      return;
+    }
+  } catch {
+    setMessage(
+      "Client was not created because the invitation could not be sent."
+    );
+    return;
+  }
+}
+
+setClients((current) => [newClient, ...current]);
     setForm(emptyForm);
     setMessage("");
     setShowNewClient(false);
@@ -585,6 +619,50 @@ export default function Home() {
       current?.id === clientId ? { ...current, status } : current,
     );
   }
+
+  function editClient(client: Client) {
+  const primaryName = window.prompt("Primary client name:", client.primaryName);
+  if (primaryName === null) return;
+
+  const spouseName = window.prompt("Spouse name:", client.spouseName ?? "");
+  if (spouseName === null) return;
+
+  const businessName = window.prompt("Business name:", client.businessName ?? "");
+  if (businessName === null) return;
+
+  const email = window.prompt(
+    "Client email — leave blank if this client has no email:",
+    client.email ?? "",
+  );
+  if (email === null) return;
+
+  const phone = window.prompt(
+    "Client phone — leave blank if none:",
+    client.phone ?? "",
+  );
+  if (phone === null) return;
+
+  const taxYear = window.prompt("Tax year:", client.taxYear);
+  if (taxYear === null) return;
+
+  const updatedClient: Client = {
+    ...client,
+    primaryName: primaryName.trim(),
+    spouseName: spouseName.trim(),
+    businessName: businessName.trim(),
+    email: email.trim(),
+    phone: phone.trim(),
+    taxYear: taxYear.trim(),
+  };
+
+  setClients((current) =>
+    current.map((currentClient) =>
+      currentClient.id === client.id ? updatedClient : currentClient,
+    ),
+  );
+
+  setSelectedClient(updatedClient);
+}
 
   const pageBackground = {
     minHeight: "100vh",
@@ -1203,6 +1281,19 @@ export default function Home() {
                   </div>
                 </div>
 
+                <button
+  type="button"
+ onClick={() => editClient(selectedClient)}
+  style={{
+    ...buttonBase,
+    padding: "8px 12px",
+    background: "#eef2ff",
+    color: "#4338ca",
+    marginRight: "8px",
+  }}
+>
+ ✏️ Edit Client
+</button>
                 <button
                   type="button"
                   onClick={() => setSelectedClient(null)}

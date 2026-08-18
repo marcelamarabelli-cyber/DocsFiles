@@ -1,6 +1,6 @@
 "use client";
 import { createClient } from "../utils/supabase/client";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
@@ -12,15 +12,108 @@ const redirectTo = searchParams.get("redirect") || "/";
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [message, setMessage] = useState("");
+const [isInvited, setIsInvited] = useState(false);
+const [isResetMode, setIsResetMode] = useState(false);
+useEffect(() => {
+  const hashParams = new URLSearchParams(window.location.hash.slice(1));
+const resetMode = searchParams.get("mode") === "reset";
+const code = searchParams.get("code");
+const accessToken = hashParams.get("access_token");
+const refreshToken = hashParams.get("refresh_token");
+const authType = hashParams.get("type");
+if (accessToken && refreshToken && authType === "invite") {
+  supabase.auth
+    .setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    })
+    .then(({ data: { session }, error }) => {
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
 
+      if (session) {
+        setIsInvited(true);
+        setEmail(session.user.email ?? "");
+        setMessage("Create your password to activate your DocsFiles account.");
+      }
+    });
+}
+if (code) {
+  supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
+    if (error) {
+      setMessage(error.message);
+    }
+  });
+}
+if (resetMode) {
+  setIsResetMode(true);
+}
+  if (!resetMode && hashParams.get("type") !== "invite") {
+    return;
+  }
+supabase.auth.getSession().then(({ data: { session } }) => {
+  if (session && !resetMode) {
+    setIsInvited(true);
+    setEmail(session.user.email ?? "");
+    setMessage("Create your password to activate your DocsFiles account.");
+  }
+});
+  const {
+    data: { subscription },
+  } = supabase.auth.onAuthStateChange((_event, session) => {
+    if (session && !resetMode) {
+      setIsInvited(true);
+      setEmail(session.user.email ?? "");
+      setMessage("Create your password to activate your DocsFiles account.");
+    }
+  });
+
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    if (session && !resetMode) {
+      setIsInvited(true);
+      setEmail(session.user.email ?? "");
+      setMessage("Create your password to activate your DocsFiles account.");
+    }
+  });
+
+  return () => {
+    subscription.unsubscribe();
+  };
+}, []);
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
   event.preventDefault();
 
-  if (!email.trim() || !password.trim()) {
-    setMessage("Please enter your email and password.");
+  if (!password.trim() || (!isInvited && !isResetMode && !email.trim())) {
+  setMessage(
+    isInvited || isResetMode
+      ? "Please enter your new password."
+      : "Please enter your email and password."
+  );
+  return;
+}
+if (isInvited || isResetMode) {
+  setMessage(isResetMode ? "Updating your password..." : "Creating your password...");
+
+  const { error: updateError } = await supabase.auth.updateUser({
+    password,
+  });
+
+  if (updateError) {
+    setMessage(updateError.message);
     return;
   }
 
+  setMessage(
+  isResetMode
+    ? "Password updated successfully."
+    : "Password created successfully."
+);
+  router.push(redirectTo);
+  router.refresh();
+  return;
+}
   setMessage("Signing you in...");
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -204,11 +297,29 @@ const redirectTo = searchParams.get("redirect") || "/";
           <div style={{ textAlign: "right", marginBottom: "24px" }}>
             <button
               type="button"
-              onClick={() =>
-                setMessage(
-                  "Password reset will be connected to secure authentication."
-                )
-              }
+              onClick={async () => {
+  const resetEmail = email.trim();
+
+  if (!resetEmail) {
+    setMessage("Please enter your email address first.");
+    return;
+  }
+
+  setMessage("Sending password reset email...");
+
+  const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+    redirectTo: `${window.location.origin}/login?mode=reset&redirect=${encodeURIComponent(
+      redirectTo
+    )}`,
+  });
+
+  if (error) {
+    setMessage(error.message);
+    return;
+  }
+
+  setMessage("Check your email for the password reset link.");
+}}
               style={{
                 border: 0,
                 background: "transparent",
@@ -237,7 +348,7 @@ const redirectTo = searchParams.get("redirect") || "/";
               boxShadow: "0 10px 25px rgba(37, 99, 235, 0.25)",
             }}
           >
-            🔐 Sign In
+           {isInvited || isResetMode ? "🔐 Create New Password" : "🔐 Sign In"}
           </button>
         </form>
 
