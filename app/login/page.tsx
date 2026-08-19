@@ -1,9 +1,9 @@
 "use client";
 import { createClient } from "../utils/supabase/client";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const router = useRouter();
   const supabase = createClient();
 const searchParams = useSearchParams();
@@ -405,5 +405,12 @@ if (isInvited || isResetMode) {
         </div>
       </div>
     </main>
+  );
+}
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginPageContent />
+    </Suspense>
   );
 }
