@@ -14,7 +14,8 @@ type ClientOverviewCardProps = {
   filingStatus: string;
   email?: string;
   phone?: string;
-  completedItems: number;
+  photoUrl?: string;
+ completedItems: number;
   totalItems: number;
   status?: string;
 
@@ -32,6 +33,7 @@ export default function ClientOverviewCard({
   filingStatus,
   email,
   phone,
+  photoUrl,
   completedItems,
   totalItems,
   status = "In Progress",
@@ -138,7 +140,20 @@ export default function ClientOverviewCard({
                 boxShadow: "0 9px 25px rgba(20,25,80,0.18)",
               }}
             >
-              👤
+             {photoUrl ? (
+  <img
+    src={photoUrl}
+    alt={clientName}
+    style={{
+      width: "100%",
+      height: "100%",
+      objectFit: "cover",
+      borderRadius: "20px",
+    }}
+  />
+) : (
+  "👤"
+)}
             </div>
 
             <div style={{ minWidth: 0 }}>

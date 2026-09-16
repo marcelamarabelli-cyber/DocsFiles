@@ -59,6 +59,7 @@ export type Client = {
   taxYear: string;
   status: ClientStatus;
   notes: string;
+  photoUrl?: string;
   createdAt: string;
 };
 
@@ -72,6 +73,7 @@ export type ClientForm = {
   taxYear: string;
   status: ClientStatus;
   notes: string;
+  photoUrl?: string;
 };
 
 export const statusOptions: ClientStatus[] = [

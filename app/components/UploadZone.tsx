@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { createClient } from "../utils/supabase/client";
 import DocumentPreview from "./DocumentPreview";
 import type {
   DocumentFolder,
@@ -23,6 +24,8 @@ import {
 
 type UploadZoneProps = {
   clientId: string;
+  invoiceId?: number;
+  invoiceAmount?: number;
   folder: DocumentFolder;
   documents: StoredDocument[];
   onAddDocuments: (documents: StoredDocument[]) => void;
@@ -106,6 +109,8 @@ function getFileIcon(document: StoredDocument) {
 
 export default function UploadZone({
   clientId,
+   invoiceId,
+  invoiceAmount,
   folder,
   documents,
   onAddDocuments,
@@ -120,6 +125,29 @@ export default function UploadZone({
   const [savingMessage, setSavingMessage] = useState("");
   const [previewDocumentItem, setPreviewDocumentItem] =
     useState<StoredDocument | null>(null);
+
+    const [signedSignatureCount, setSignedSignatureCount] = useState(0);
+
+    useEffect(() => {
+  async function loadSignedSignatureCount() {
+    const supabase = createClient();
+
+    const { count, error } = await supabase
+      .from("client_esignatures")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("status", "signed");
+
+    if (error) {
+      console.error("Could not count signed e-signatures:", error.message);
+      return;
+    }
+
+    setSignedSignatureCount(count ?? 0);
+  }
+
+  loadSignedSignatureCount();
+}, [clientId]);
 
   useEffect(() => {
     return () => {
@@ -498,7 +526,7 @@ export default function UploadZone({
             <UploadStat
               icon="📁"
               label="Total files"
-              value={documents.length}
+             value={documents.length + signedSignatureCount}
             />
 
             <UploadStat
@@ -587,7 +615,80 @@ export default function UploadZone({
                   ? "📥"
                   : "📤"}
             </div>
+{folder.id === "invoices-payments" && (
+  <div
+    style={{
+      marginBottom: "20px",
+      padding: "18px",
+      border: "1px solid #bfdbfe",
+      borderRadius: "14px",
+      background: "#eff6ff",
+      textAlign: "center",
+    }}
+  >
+    <h3 style={{ margin: "0 0 6px", fontSize: "18px" }}>
+      Pay Your Invoice
+    </h3>
 
+    <p style={{ margin: "0 0 14px", color: "#64748b", fontSize: "13px" }}>
+      Secure payment through PayPal.
+    </p>
+
+   <button
+  type="button"
+  onClick={async (e) => {
+    e.stopPropagation();
+
+    const response = await fetch("/api/paypal/create-order", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: invoiceAmount,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      alert("Could not start PayPal payment.");
+      return;
+    }
+if (invoiceId && data.orderId) {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("client_invoices")
+    .update({ paypal_order_id: data.orderId })
+    .eq("id", invoiceId);
+
+  if (error) {
+    console.error("Could not save PayPal order ID:", error);
+  }
+}
+    if (data.approvalLink) {
+  window.location.href = data.approvalLink;
+  return;
+}
+
+alert("PayPal approval link was not found.");
+  }}
+  style={{
+    display: "inline-block",
+    padding: "12px 20px",
+    borderRadius: "10px",
+    background: "#2563eb",
+    color: "white",
+    fontWeight: 700,
+    border: "none",
+    cursor: "pointer",
+  }}
+>
+  Pay ${invoiceAmount?.toFixed(2) ?? "0.00"} with PayPal
+</button>
+  </div>
+)}
             <h3
               style={{
                 margin: "9px 0 6px",
@@ -614,26 +715,26 @@ export default function UploadZone({
             </p>
 
             {!isSavingFiles && (
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  fileInputRef.current?.click();
-                }}
-                style={{
-                  marginTop: "15px",
-                  padding: "11px 17px",
-                  border: "none",
-                  borderRadius: "11px",
-                  background:
-                    "linear-gradient(135deg, #2563eb, #7c3aed)",
-                  color: "white",
-                  cursor: "pointer",
-                  fontWeight: 800,
-                }}
-              >
-                Choose Files
-              </button>
+              
+         <button
+  type="button"
+  onClick={(event) => {
+    event.stopPropagation();
+    fileInputRef.current?.click();
+  }}
+  style={{
+    marginTop: "15px",
+    padding: "11px 17px",
+    border: "none",
+    borderRadius: "11px",
+    background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+    color: "white",
+    cursor: "pointer",
+    fontWeight: 800,
+  }}
+>
+  Choose Files
+</button>
             )}
           </div>
 

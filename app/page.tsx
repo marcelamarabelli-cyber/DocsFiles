@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
+import { createClient as createSupabaseClient } from "./utils/supabase/client";
 import FolderGrid from "./components/FolderGrid";
 import UploadZone from "./components/UploadZone";
 import RequestCenter from "./components/RequestCenter";
@@ -69,7 +70,7 @@ const sampleClients: Client[] = [
   },
   {
     id: "TD-0003",
-    primaryName: "George Schmitt",
+   primaryName: "Marcela Marabelli",
     spouseName: "",
     businessName: "",
     email: "MARCELA.MARABELLI@GMAIL.COM",
@@ -420,7 +421,7 @@ function statusColor(status: ClientStatus) {
 }
 
 export default function Home() {
-  const [clients, setClients] = useState<Client[]>(sampleClients);
+ const [clients, setClients] = useState<Client[]>(sampleClients);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -434,7 +435,83 @@ export default function Home() {
   const [documentRequests, setDocumentRequests] =
     useState<DocumentRequest[]>([]);
   const [showRequestCenter, setShowRequestCenter] = useState(false);
+  const [invoiceAmount, setInvoiceAmount] = useState("");
+const [invoiceDescription, setInvoiceDescription] = useState("");
+const [invoiceSaving, setInvoiceSaving] = useState(false);
+const [invoiceMessage, setInvoiceMessage] = useState("");
+async function createInvoice() {
+  if (!selectedClient) {
+    setInvoiceMessage("Please select a client first.");
+    return;
+  }
 
+  const amount = Number(invoiceAmount);
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    setInvoiceMessage("Please enter a valid invoice amount.");
+    return;
+  }
+
+  setInvoiceSaving(true);
+  setInvoiceMessage("");
+
+  try {
+    const response = await fetch("/api/invoices", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        clientId: selectedClient.id,
+        amount,
+        description: invoiceDescription.trim() || "Services",
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok || !result.success) {
+      setInvoiceMessage(result.error || "Could not create invoice.");
+      return;
+    }
+
+    setInvoiceAmount("");
+    setInvoiceDescription("");
+    setInvoiceMessage("Invoice created successfully.");
+  } catch (error) {
+    console.error("Create invoice error:", error);
+    setInvoiceMessage("Could not create invoice.");
+  } finally {
+    setInvoiceSaving(false);
+  }
+}
+   useEffect(() => {
+    const checkAdminAuth = async () => {
+      const supabase = createSupabaseClient();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        window.location.href = "/login?redirect=/";
+        return;
+      }
+
+      const { data: access } = await supabase
+        .from("client_access")
+        .select("client_id")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      if (access?.client_id) {
+        window.location.href = `/portal/${encodeURIComponent(access.client_id)}`;
+        return;
+      }
+    };
+
+    checkAdminAuth();
+  }, []);
   useEffect(() => {
     const savedClients = window.localStorage.getItem("docsfiles-clients");
 
@@ -562,6 +639,7 @@ export default function Home() {
       body: JSON.stringify({
         email: newClient.email,
         redirectTo,
+        clientId: newClient.id,
       }),
     });
 
@@ -589,7 +667,44 @@ setClients((current) => [newClient, ...current]);
     setShowNewClient(false);
     setSelectedClient(newClient);
   }
+async function inviteExistingClient(client: Client) {
+  if (!client.email?.trim()) {
+    setMessage("This client does not have an email address.");
+    return;
+  }
 
+  const portalPath = `/portal/${client.id}`;
+  const redirectTo = `${window.location.origin}/login?redirect=${encodeURIComponent(
+    portalPath
+  )}`;
+
+  try {
+    const response = await fetch("/api/invite-client", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email: client.email.trim(),
+        redirectTo,
+        clientId: client.id,
+      }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setMessage(
+        result.error || "Unable to send client invitation."
+      );
+      return;
+    }
+
+    setMessage(`Invitation sent to ${client.email}`);
+  } catch {
+    setMessage("The client invitation could not be sent.");
+  }
+}
   function deleteClient(client: Client) {
     const confirmed = window.confirm(
       `Delete ${getDisplayName(client)} from DocsFiles?`,
@@ -663,7 +778,42 @@ setClients((current) => [newClient, ...current]);
 
   setSelectedClient(updatedClient);
 }
+function updateClientPhoto(client: Client, photoUrl: string) {
+  const updatedClient: Client = {
+    ...client,
+    photoUrl,
+  };
 
+  setClients((current) =>
+    current.map((currentClient) =>
+      currentClient.id === client.id ? updatedClient : currentClient,
+    ),
+  );
+
+  setSelectedClient(updatedClient);
+  
+}function chooseClientPhoto(client: Client) {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = "image/*";
+
+  input.onchange = () => {
+    const file = input.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        updateClientPhoto(client, reader.result);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  input.click();
+}
   const pageBackground = {
     minHeight: "100vh",
     background:
@@ -727,20 +877,7 @@ setClients((current) => [newClient, ...current]);
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: "13px" }}>
-            <div
-              style={{
-                width: "48px",
-                height: "48px",
-                borderRadius: "15px",
-                background: "linear-gradient(135deg, #2563eb, #7c3aed)",
-                display: "grid",
-                placeItems: "center",
-                fontSize: "25px",
-                boxShadow: "0 8px 22px rgba(37, 99, 235, 0.24)",
-              }}
-            >
-              📂
-            </div>
+            
 
             <div>
 <div
@@ -827,8 +964,8 @@ setClients((current) => [newClient, ...current]);
         <section
           style={{
             background:
-              "linear-gradient(135deg, rgba(37,99,235,0.97), rgba(124,58,237,0.94))",
-            color: "white",
+             "linear-gradient(135deg, #eaf4ff 0%, #dbeafe 55%, #bfdbfe 100%)",
+            color: "#0f2f6b",
             padding: "28px",
             borderRadius: "22px",
             boxShadow: "0 18px 42px rgba(37, 99, 235, 0.18)",
@@ -866,7 +1003,7 @@ setClients((current) => [newClient, ...current]);
               style={{
                 margin: 0,
                 maxWidth: "720px",
-                color: "rgba(255,255,255,0.88)",
+                color: "#475569",
                 lineHeight: 1.6,
               }}
             >
@@ -1100,7 +1237,15 @@ setClients((current) => [newClient, ...current]);
               </select>
             </div>
 
-            <div style={{ marginTop: "18px" }}>
+            <div
+  style={{
+    marginTop: "28px",
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "18px",
+    alignItems: "flex-start",
+  }}
+>
               {filteredClients.length === 0 ? (
                 <div
                   style={{
@@ -1128,110 +1273,119 @@ setClients((current) => [newClient, ...current]);
 
                   return (
                     <button
-                      key={client.id}
-                      type="button"
-                      onClick={() => setSelectedClient(client)}
-                      style={{
-                        width: "100%",
-                        border: selected
-                          ? "2px solid #6366f1"
-                          : "1px solid #dbe5f0",
-                        background: selected ? "#f5f3ff" : "white",
-                        borderRadius: "15px",
-                        padding: "16px",
-                        marginBottom: "11px",
-                        cursor: "pointer",
-                        textAlign: "left",
-                        color: "#172033",
-                        boxShadow: selected
-                          ? "0 8px 20px rgba(99,102,241,0.12)"
-                          : "0 4px 12px rgba(15,23,42,0.03)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          gap: "14px",
-                          alignItems: "flex-start",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: "13px",
-                            alignItems: "center",
-                          }}
-                        >
-                          <div
-                            style={{
-                              width: "46px",
-                              height: "46px",
-                              borderRadius: "14px",
-                              background:
-                                client.clientType === "Business"
-                                  ? "#f3e8ff"
-                                  : "#dbeafe",
-                              display: "grid",
-                              placeItems: "center",
-                              fontSize: "22px",
-                            }}
-                          >
-                            {client.clientType === "Business" ? "🏢" : "👤"}
-                          </div>
+  key={client.id}
+  type="button"
+  onClick={() => setSelectedClient(client)}
+  style={{
+    position: "relative",
+    width: "210px",
+    minHeight: "185px",
+    margin: "14px",
+    padding: "42px 16px 18px",
+    border: selected ? "3px solid #4f46e5" : "1px solid #93c5fd",
+    borderRadius: "10px 10px 18px 18px",
+    background: selected
+      ? "linear-gradient(145deg, #dbeafe, #bfdbfe)"
+      : "linear-gradient(145deg, #eff6ff, #dbeafe)",
+    boxShadow: selected
+      ? "0 10px 26px rgba(79, 70, 229, 0.25)"
+      : "0 7px 18px rgba(37, 99, 235, 0.14)",
+    cursor: "pointer",
+    textAlign: "center",
+    verticalAlign: "top",
+    transition: "all 0.2s ease",
+    color: "#172554",
+  }}
+>
+  {/* Folder tab */}
+  <div
+    style={{
+      position: "absolute",
+      top: "-18px",
+      left: "12px",
+      width: "92px",
+      height: "30px",
+      borderRadius: "12px 12px 0 0",
+      background: selected ? "#6366f1" : "#60a5fa",
+      borderTop: selected ? "3px solid #4f46e5" : "1px solid #93c5fd",
+borderLeft: selected ? "3px solid #4f46e5" : "1px solid #93c5fd",
+borderRight: selected ? "3px solid #4f46e5" : "1px solid #93c5fd",
+borderBottom: "none",
+    }}
+  />
 
-                          <div>
-                            <div
-                              style={{
-                                fontWeight: 900,
-                                fontSize: "16px",
-                              }}
-                            >
-                              {getDisplayName(client)}
-                            </div>
+  {/* Client face/avatar */}
+  <div
+    style={{
+      width: "64px",
+      height: "64px",
+      margin: "0 auto 10px",
+      borderRadius: "50%",
+      background: "white",
+      border: "4px solid rgba(255,255,255,0.9)",
+      boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "34px",
+    }}
+  >
+   {client.photoUrl ? (
+  <img
+    src={client.photoUrl}
+    alt={getDisplayName(client)}
+    style={{
+      width: "100%",
+      height: "100%",
+      borderRadius: "50%",
+      objectFit: "cover",
+    }}
+  />
+) : client.clientType === "Business" ? (
+  "🏢"
+) : (
+  "👤"
+)}
+  </div>
 
-                            <div
-                              style={{
-                                marginTop: "4px",
-                                color: "#64748b",
-                                fontSize: "12px",
-                              }}
-                            >
-                              {client.clientType} · Tax Year {client.taxYear}
-                            </div>
-                          </div>
-                        </div>
+  {/* Client name */}
+  <div
+    style={{
+      fontWeight: 900,
+      fontSize: "16px",
+      lineHeight: 1.2,
+      marginBottom: "5px",
+    }}
+  >
+    {getDisplayName(client)}
+  </div>
 
-                        <span
-                          style={{
-                            background: colors.background,
-                            color: colors.color,
-                            border: `1px solid ${colors.border}`,
-                            padding: "6px 9px",
-                            borderRadius: "999px",
-                            fontSize: "11px",
-                            fontWeight: 800,
-                          }}
-                        >
-                          {client.status}
-                        </span>
-                      </div>
+  {/* Tax year */}
+  <div
+    style={{
+      fontSize: "12px",
+      color: "#475569",
+      marginBottom: "9px",
+    }}
+  >
+    {client.clientType} · Tax Year {client.taxYear}
+  </div>
 
-                      <div
-                        style={{
-                          display: "flex",
-                          gap: "16px",
-                          marginTop: "13px",
-                          color: "#64748b",
-                          fontSize: "12px",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <span>📧 {client.email || "No email entered"}</span>
-                        <span>📞 {client.phone || "No phone entered"}</span>
-                      </div>
-                    </button>
+  {/* Status */}
+  <span
+    style={{
+      display: "inline-block",
+      padding: "4px 9px",
+      borderRadius: "999px",
+      background: colors.background,
+      color: colors.color,
+      fontSize: "11px",
+      fontWeight: 800,
+    }}
+  >
+    {client.status}
+  </span>
+</button>
                   );
                 })
               )}
@@ -1293,6 +1447,32 @@ setClients((current) => [newClient, ...current]);
   }}
 >
  ✏️ Edit Client
+</button>
+<button
+  type="button"
+  onClick={() => inviteExistingClient(selectedClient)}
+  style={{
+    ...buttonBase,
+    padding: "8px 12px",
+    background: "#eef2ff",
+    color: "#4338ca",
+    marginRight: "8px",
+  }}
+>
+  ✉️ Invite Client
+</button>
+<button
+  type="button"
+  onClick={() => chooseClientPhoto(selectedClient)}
+  style={{
+    ...buttonBase,
+    padding: "8px 12px",
+    background: "#ecfdf5",
+    color: "#047857",
+    marginRight: "8px",
+  }}
+>
+  📸 Add / Change Photo
 </button>
                 <button
                   type="button"
@@ -1388,7 +1568,42 @@ setClients((current) => [newClient, ...current]);
                 >
                   📋 Request Documents
                 </button>
+<button
+  type="button"
+  onClick={() => {
+    const amount = window.prompt("Invoice amount ($):");
+    if (amount === null) return;
 
+    const description = window.prompt(
+      "Invoice description:",
+      "Tax Preparation Services"
+    );
+
+    setInvoiceAmount(amount);
+    setInvoiceDescription(description ?? "Tax Preparation Services");
+
+    setTimeout(() => {
+      document.getElementById("create-invoice-submit")?.click();
+    }, 0);
+  }}
+  style={{
+    ...buttonBase,
+    padding: "12px",
+    background: "#2563eb",
+    color: "white",
+  }}
+>
+  💳 Create Invoice
+</button>
+
+<button
+  id="create-invoice-submit"
+  type="button"
+  onClick={createInvoice}
+  style={{ display: "none" }}
+>
+  Create
+</button>
                 <button
                   type="button"
                  onClick={() => {

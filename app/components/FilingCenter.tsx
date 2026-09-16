@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import type { StoredDocument } from "../types/client";
-
+import { createClient } from "../utils/supabase/client";
 type FilingRecord = {
   federalConfirmation: string;
   stateConfirmation: string;
@@ -61,7 +61,7 @@ export default function FilingCenter({
   const [record, setRecord] = useState<FilingRecord>(emptyRecord);
   const [loaded, setLoaded] = useState(false);
   const [savedMessage, setSavedMessage] = useState("");
-
+const [signedSignatureCount, setSignedSignatureCount] = useState(0);
   useEffect(() => {
     try {
       const saved = window.localStorage.getItem(storageKey(clientId));
@@ -78,7 +78,28 @@ export default function FilingCenter({
 
     setLoaded(true);
   }, [clientId]);
+useEffect(() => {
+  async function loadSignedSignatureCount() {
+    const supabase = createClient();
 
+    const { count, error } = await supabase
+      .from("client_esignatures")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("status", "signed");
+
+    if (error) {
+      console.error("Could not count signed documents:", error.message);
+      return;
+    }
+
+    setSignedSignatureCount(count ?? 0);
+  }
+
+  loadSignedSignatureCount();
+}, [clientId]);
+ 
+ 
   useEffect(() => {
     if (!loaded) {
       return;
@@ -112,13 +133,13 @@ export default function FilingCenter({
       complete: readyStageReached,
     },
     {
-      label: "Signed authorization on file",
-      detail:
-        signatureFiles.length > 0
-          ? `${signatureFiles.length} e-signature document${signatureFiles.length === 1 ? "" : "s"} saved.`
-          : "Add the signed e-file authorization before transmitting.",
-      complete: signatureFiles.length > 0,
-    },
+  label: "Signed authorization on file",
+  detail:
+    signedSignatureCount > 0
+      ? `${signedSignatureCount} e-signature document${signedSignatureCount === 1 ? "" : "s"} saved.`
+      : "Add the signed e-file authorization before transmitting.",
+  complete: signedSignatureCount > 0,
+},
     {
       label: "Final return copy saved",
       detail:

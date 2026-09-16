@@ -15,66 +15,79 @@ const redirectTo = searchParams.get("redirect") || "/";
 const [isInvited, setIsInvited] = useState(false);
 const [isResetMode, setIsResetMode] = useState(false);
 useEffect(() => {
-  const hashParams = new URLSearchParams(window.location.hash.slice(1));
-const resetMode = searchParams.get("mode") === "reset";
-const code = searchParams.get("code");
-const accessToken = hashParams.get("access_token");
-const refreshToken = hashParams.get("refresh_token");
-const authType = hashParams.get("type");
-if (accessToken && refreshToken && authType === "invite") {
-  supabase.auth
-    .setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    })
-    .then(({ data: { session }, error }) => {
+  const initializeAuth = async () => {
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const resetMode = searchParams.get("mode") === "reset";
+    const code = searchParams.get("code");
+
+    const accessToken = hashParams.get("access_token");
+    const refreshToken = hashParams.get("refresh_token");
+    const authType = hashParams.get("type");
+
+    if (resetMode) {
+      setIsResetMode(true);
+    }
+
+    // Password reset or PKCE invite link
+    if (code) {
+      const { data, error } =
+        await supabase.auth.exchangeCodeForSession(code);
+
       if (error) {
         setMessage(error.message);
         return;
       }
 
-      if (session) {
-        setIsInvited(true);
-        setEmail(session.user.email ?? "");
-        setMessage("Create your password to activate your DocsFiles account.");
+      if (data.session) {
+        setEmail(data.session.user.email ?? "");
+
+        if (resetMode) {
+          setIsResetMode(true);
+          setMessage("Enter your new password.");
+        } else {
+          setIsInvited(true);
+          setMessage(
+            "Create your password to activate your DocsFiles account."
+          );
+        }
+
+        return;
       }
-    });
-}
-if (code) {
-  supabase.auth.exchangeCodeForSession(code).then(({ error }) => {
-    if (error) {
-      setMessage(error.message);
     }
-  });
-}
-if (resetMode) {
-  setIsResetMode(true);
-}
-  if (!resetMode && hashParams.get("type") !== "invite") {
-    return;
-  }
-supabase.auth.getSession().then(({ data: { session } }) => {
-  if (session && !resetMode) {
-    setIsInvited(true);
-    setEmail(session.user.email ?? "");
-    setMessage("Create your password to activate your DocsFiles account.");
-  }
-});
+
+    // Older invite links that contain tokens in the URL hash
+    if (
+      accessToken &&
+      refreshToken &&
+      authType === "invite"
+    ) {
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+
+      if (error) {
+        setMessage(error.message);
+        return;
+      }
+
+      if (data.session) {
+        setIsInvited(true);
+        setEmail(data.session.user.email ?? "");
+        setMessage(
+          "Create your password to activate your DocsFiles account."
+        );
+      }
+    }
+  };
+
+  initializeAuth();
+
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange((_event, session) => {
-    if (session && !resetMode) {
-      setIsInvited(true);
+    if (session) {
       setEmail(session.user.email ?? "");
-      setMessage("Create your password to activate your DocsFiles account.");
-    }
-  });
-
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    if (session && !resetMode) {
-      setIsInvited(true);
-      setEmail(session.user.email ?? "");
-      setMessage("Create your password to activate your DocsFiles account.");
     }
   });
 
@@ -133,8 +146,24 @@ if (isInvited || isResetMode) {
 
   setMessage("Sign in successful.");
 
-  router.push(redirectTo);
-  router.refresh();
+  const { data: access, error: accessError } = await supabase
+  .from("client_access")
+  .select("client_id")
+  .eq("user_id", data.user.id)
+  .maybeSingle();
+
+if (accessError) {
+  setMessage(accessError.message);
+  return;
+}
+
+if (access?.client_id) {
+  window.location.href = `/portal/${encodeURIComponent(access.client_id)}`;
+  return;
+}
+
+router.push(redirectTo);
+router.refresh();
 }
 
   return (

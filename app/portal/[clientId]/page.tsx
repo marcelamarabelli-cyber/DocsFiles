@@ -14,6 +14,8 @@ import ReviewChecklist from "../../components/ReviewChecklist";
 import CompletionCenter from "../../components/CompletionCenter";
 import PixelAssistant from "../../components/PixelAssistant";
 import DocumentPreview from "../../components/DocumentPreview";
+  import ClientESignatures from "../../components/ClientESignatures";
+
 import {
   documentFolders,
   type Client,
@@ -82,6 +84,7 @@ export default function ClientPortalPage() {
 const supabase = useMemo(() => createClient(), []);
 const router = useRouter();
   const [client, setClient] = useState<Client | null>(null);
+  
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
   const [documentRequests, setDocumentRequests] =
     useState<DocumentRequest[]>([]);
@@ -92,6 +95,15 @@ const router = useRouter();
   const [loaded, setLoaded] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
   const [activityRefreshKey, setActivityRefreshKey] = useState(0);
+  const [signedSignatureCount, setSignedSignatureCount] = useState(0);
+  const [signedSignatures, setSignedSignatures] = useState<any[]>([]);
+  const [invoice, setInvoice] = useState<{
+  id: number;
+  amount: number;
+  status: string;
+  paypal_order_id: string | null;
+  paid_at: string | null;
+} | null>(null);  
 useEffect(() => {
   async function checkSession() {
     const {
@@ -105,37 +117,81 @@ useEffect(() => {
       );
       return;
     }
-const clients = loadClients();
-const matchingClient =
-  clients.find((currentClient) => currentClient.id === clientId) ?? null;
-
 const signedInEmail = session.user.email?.trim().toLowerCase();
-const clientEmail = matchingClient?.email?.trim().toLowerCase();
 const adminEmail =
   process.env.NEXT_PUBLIC_DOCSFILES_ADMIN_EMAIL?.trim().toLowerCase();
 
 const isAdmin = !!adminEmail && signedInEmail === adminEmail;
-if (
-  !matchingClient ||
-  !signedInEmail ||
-  (!isAdmin && signedInEmail !== clientEmail)
-) {
+
+const { data: access, error: accessError } = await supabase
+  .from("client_access")
+  .select("client_id")
+  .eq("user_id", session.user.id)
+  .eq("client_id", clientId)
+  .maybeSingle();
+
+if (accessError) {
+  console.error("Could not verify client access:", accessError.message);
+}
+
+if (!isAdmin && !access?.client_id) {
   router.replace(
-  `/login?redirect=${encodeURIComponent(`/portal/${clientId}`)}`
-);
+    `/login?redirect=${encodeURIComponent(`/portal/${clientId}`)}`
+  );
   return;
 }
-    setAuthChecked(true);
+
+setAuthChecked(true);
   }
 
   checkSession();
 }, [clientId, router, supabase]);
+useEffect(() => {
+async function loadSignedSignatures() {
+  const { data, error } = await supabase
+    .from("client_esignatures")
+    .select("id, document_id, document_name, signer_name, signed_at, pdf_path")
+    .eq("client_id", clientId)
+    .eq("status", "signed")
+    .order("signed_at", { ascending: false });
+
+  if (error) {
+    console.error("Could not load signed e-signatures:", error.message);
+    return;
+  }
+
+  setSignedSignatures(data ?? []);
+  setSignedSignatureCount(data?.length ?? 0);
+}
+async function loadInvoice() {
+  const { data, error } = await supabase
+    .from("client_invoices")
+    .select("id, amount, status, paypal_order_id, paid_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Could not load invoice:", error.message);
+    return;
+  }
+
+  setInvoice(data ?? null);
+}
+
+
+loadInvoice();
+loadSignedSignatures();
+
+}, [clientId, supabase]);
   useEffect(() => {
     const clients = loadClients();
     const matchingClient =
       clients.find((currentClient) => currentClient.id === clientId) ?? null;
 
     setClient(matchingClient);
+   
     setDocuments(loadDocuments());
     setDocumentRequests(loadDocumentRequests());
 
@@ -183,13 +239,16 @@ if (
           title: folder.title,
           subtitle: folder.subtitle,
           icon: folder.icon,
-          documentCount: folderDocuments.length,
+          documentCount:
+  folder.id === "e-signatures"
+    ? signedSignatureCount
+    : folderDocuments.length,
           reviewedCount: folderDocuments.filter(
             (document) => document.reviewed,
           ).length,
         };
       }),
-    [clientDocuments],
+    [clientDocuments, signedSignatureCount],
   );
 
   const totalFiles = clientDocuments.length;
@@ -312,6 +371,7 @@ if (
     );
   }
 
+
   if (!client) {
     return (
       <main
@@ -420,6 +480,7 @@ if (
         filingStatus="Married Filing Jointly"
         email={client.email}
         phone={client.phone}
+        photoUrl={client.photoUrl}
         completedItems={reviewedDocuments}
         totalItems={Math.max(totalFiles, 1)}
         status={client.status}
@@ -969,13 +1030,18 @@ if (
                 style={{
                   minHeight: "145px",
                   border:
-                    folder.documentCount > 0
-                      ? "1px solid #93c5fd"
-                      : "1px solid #dbe5f0",
-                  borderRadius: "15px",
-                  padding: "15px",
-                  background:
-                    folder.documentCount > 0 ? "#eff6ff" : "#f8fafc",
+  folder.id === "invoices-payments"
+    ? "2px solid #2563eb"
+    : folder.documentCount > 0
+    ? "1px solid #93c5fd"
+    : "1px solid #dbe5f0",
+
+background:
+  folder.id === "invoices-payments"
+    ? "#dbeafe"
+    : folder.documentCount > 0
+    ? "#eff6ff"
+    : "#f8fafc",
                   cursor: "pointer",
                   textAlign: "left",
                   color: "#172033",
@@ -1144,10 +1210,58 @@ if (
           cloud storage and encryption will be added before real client use.
         </div>
       </div>
+{openFolderId === "invoices-payments" && (
+  <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+    <h3 className="text-lg font-semibold text-slate-900">
+      Pay Your Invoice
+    </h3>
 
-      {openFolderId && (
+    <p className="mt-1 text-sm text-slate-600">
+      Secure payment through PayPal.
+    </p>
+{invoice && (
+  <p className="mt-3 text-lg font-bold">
+    Amount Due: ${Number(invoice.amount).toFixed(2)}
+  </p>
+)}
+   <button
+  type="button"
+  onClick={async () => {
+    try {
+      const response = await fetch("/api/paypal/create-order", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: Number(invoice?.amount ?? 0),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.approvalLink) {
+        window.location.href = data.approvalLink;
+        return;
+      }
+
+      alert("PayPal approval link was not found.");
+    } catch (error) {
+      console.error("PayPal payment error:", error);
+      alert("PayPal payment could not be started.");
+    }
+  }}
+  className="mt-4 inline-flex items-center justify-center rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white"
+>
+  Pay ${Number(invoice?.amount ?? 0).toFixed(2)} with PayPal
+</button>
+  </div>
+)}
+      {openFolderId && openFolderId !== "e-signatures" && (
         <UploadZone
           clientId={client.id}
+          invoiceId={invoice?.id}
+          invoiceAmount={invoice?.amount}
           folder={
             documentFolders.find((folder) => folder.id === openFolderId)!
           }
@@ -1210,6 +1324,101 @@ if (
           onClose={() => setOpenFolderId(null)}
         />
       )}
+      {openFolderId === "e-signatures" && (
+  <div
+    style={{
+      marginTop: "18px",
+      padding: "20px",
+      border: "1px solid #dbe5f0",
+      borderRadius: "15px",
+      background: "#ffffff",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "16px",
+      }}
+    >
+      <h3 style={{ margin: 0 }}>✍️ Signed Documents</h3>
+
+      <button
+        type="button"
+        onClick={() => setOpenFolderId(null)}
+        style={{
+          border: 0,
+          borderRadius: "10px",
+          padding: "8px 12px",
+          cursor: "pointer",
+          fontWeight: 700,
+        }}
+      >
+        Close
+      </button>
+    </div>
+
+    {signedSignatures.length === 0 ? (
+      <p>No signed documents yet.</p>
+    ) : (
+      signedSignatures.map((signature) => (
+        <div
+          key={signature.id}
+          style={{
+            padding: "14px",
+            marginBottom: "10px",
+            border: "1px solid #dbe5f0",
+            borderRadius: "12px",
+          }}
+        >
+          <div style={{ fontWeight: 800 }}>
+            📄 {signature.document_name}
+          </div>
+
+          <div style={{ marginTop: "5px", fontSize: "13px" }}>
+            Signed by {signature.signer_name}
+          </div>
+
+          <div style={{ marginTop: "3px", fontSize: "13px" }}>
+            {signature.signed_at
+              ? new Date(signature.signed_at).toLocaleString()
+              : ""}
+          </div>
+
+          {signature.pdf_path && (
+            <button
+              type="button"
+              onClick={async () => {
+                const { data, error } = await supabase.storage
+                  .from("signed-documents")
+                  .createSignedUrl(signature.pdf_path, 300);
+
+                if (error || !data?.signedUrl) {
+                  alert("Could not open signed PDF.");
+                  return;
+                }
+
+                window.open(data.signedUrl, "_blank");
+              }}
+              style={{
+                marginTop: "10px",
+                border: 0,
+                borderRadius: "10px",
+                padding: "9px 14px",
+                cursor: "pointer",
+                fontWeight: 700,
+              }}
+            >
+              Open Signed PDF
+            </button>
+          )}
+        </div>
+      ))
+    )}
+  </div>
+)}
+      <ClientESignatures clientId={clientId} />
     </main>
   );
 }

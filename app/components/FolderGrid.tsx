@@ -1,5 +1,6 @@
 "use client";
-
+import { useEffect, useState } from "react";
+import { createClient } from "../utils/supabase/client";
 import type {
   DocumentFolder,
   DocumentFolderId,
@@ -19,6 +20,28 @@ export default function FolderGrid({
   clientId,
   onOpenFolder,
 }: FolderGridProps) {
+  const [signedSignatureCount, setSignedSignatureCount] = useState(0);
+
+useEffect(() => {
+  async function loadSignedSignatureCount() {
+    const supabase = createClient();
+
+    const { count, error } = await supabase
+      .from("client_esignatures")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("status", "signed");
+
+    if (error) {
+      console.error("Could not count signed e-signatures:", error.message);
+      return;
+    }
+
+    setSignedSignatureCount(count ?? 0);
+  }
+
+  loadSignedSignatureCount();
+}, [clientId]);
   return (
     <div
       style={{
@@ -28,14 +51,52 @@ export default function FolderGrid({
         gap: "11px",
       }}
     >
-      {folders.map((folder) => {
+      {folders.map((folder, index) => {
+const folderColors = [
+  {
+    background: "linear-gradient(145deg, #dbeafe 0%, #bfdbfe 100%)",
+    border: "#93c5fd",
+    accent: "#2563eb",
+  },
+  {
+    background: "linear-gradient(145deg, #fef3c7 0%, #fde68a 100%)",
+    border: "#fcd34d",
+    accent: "#d97706",
+  },
+  {
+    background: "linear-gradient(145deg, #dcfce7 0%, #bbf7d0 100%)",
+    border: "#86efac",
+    accent: "#16a34a",
+  },
+  {
+    background: "linear-gradient(145deg, #fce7f3 0%, #fbcfe8 100%)",
+    border: "#f9a8d4",
+    accent: "#db2777",
+  },
+  {
+    background: "linear-gradient(145deg, #ede9fe 0%, #ddd6fe 100%)",
+    border: "#c4b5fd",
+    accent: "#7c3aed",
+  },
+  {
+    background: "linear-gradient(145deg, #cffafe 0%, #a5f3fc 100%)",
+    border: "#67e8f9",
+    accent: "#0891b2",
+  },
+];
+
+const folderColor = folderColors[index % folderColors.length];
+
         const folderDocuments = documents.filter(
           (document) =>
             document.clientId === clientId &&
             document.folderId === folder.id,
         );
 
-        const fileCount = folderDocuments.length;
+       const fileCount =
+  folder.id === "e-signatures"
+    ? signedSignatureCount
+    : folderDocuments.length;
 
         const reviewedCount = folderDocuments.filter(
           (document) => document.reviewed === true,
@@ -78,30 +139,31 @@ export default function FolderGrid({
           <button
             key={folder.id}
             type="button"
-            onClick={() => onOpenFolder(folder.id)}
+            onClick={() => {
+  if (folder.id === "e-signatures") {
+    document
+      .getElementById("client-esignatures")
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  onOpenFolder(folder.id);
+}}
             style={{
-              position: "relative",
-              border:
-                status === "Complete"
-                  ? "1px solid #86efac"
-                  : status === "Needs Review"
-                    ? "1px solid #fde68a"
-                    : "1px solid #dbe5f0",
-              borderRadius: "15px",
-              padding: "14px",
-              background:
-                status === "Complete"
-                  ? "#f0fdf4"
-                  : status === "Needs Review"
-                    ? "#fffbeb"
-                    : "#f8fafc",
-              cursor: "pointer",
-              textAlign: "left",
-              color: "#172033",
-              minHeight: "170px",
-              transition:
-                "transform 140ms ease, box-shadow 140ms ease",
-            }}
+  position: "relative",
+  border: `1px solid ${folderColor.border}`,
+  borderRadius: "20px 20px 16px 16px",
+  padding: "18px",
+  background: folderColor.background,
+  cursor: "pointer",
+  textAlign: "left",
+  color: "#172033",
+  minHeight: "180px",
+  transition: "transform 160ms ease, box-shadow 160ms ease",
+  boxShadow: "0 8px 20px rgba(15,23,42,0.08)",
+  overflow: "hidden",
+}}
+              
             onMouseEnter={(event) => {
               event.currentTarget.style.transform =
                 "translateY(-2px)";
@@ -113,7 +175,19 @@ export default function FolderGrid({
                 "translateY(0)";
               event.currentTarget.style.boxShadow = "none";
             }}
-          >
+          ><div
+  aria-hidden="true"
+  style={{
+    position: "absolute",
+    top: 0,
+    left: "18px",
+    width: "74px",
+    height: "12px",
+    background: folderColor.accent,
+    borderRadius: "0 0 8px 8px",
+    opacity: 0.9,
+  }}
+/>
             <div
               style={{
                 display: "flex",
