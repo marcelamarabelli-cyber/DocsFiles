@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function PayPalSuccessPage() {
+function PayPalSuccessContent() {
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Finishing your payment...");
 
@@ -41,5 +41,22 @@ export default function PayPalSuccessPage() {
         <p className="mt-4">{message}</p>
       </div>
     </main>
+  );
+}
+
+export default function PayPalSuccessPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center p-6">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold">TaxesDeal Payment</h1>
+            <p className="mt-4">Finishing your payment...</p>
+          </div>
+        </main>
+      }
+    >
+      <PayPalSuccessContent />
+    </Suspense>
   );
 }
