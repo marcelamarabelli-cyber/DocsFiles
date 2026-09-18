@@ -628,7 +628,7 @@ async function createInvoice() {
 
    if (newClient.email) {
   const portalPath = `/portal/${newClient.id}`;
-  const redirectTo = `${window.location.origin}/login?redirect=${encodeURIComponent(portalPath)}`;
+ const redirectTo = `https://docsfiles.vercel.app/login?redirect=${encodeURIComponent(portalPath)}`;
 
   try {
     const response = await fetch("/api/invite-client", {
