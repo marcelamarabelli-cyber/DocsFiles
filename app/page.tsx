@@ -27,7 +27,7 @@ import {
   statusForReviewedDocument,
 } from "./lib/requestMatcher";
 
-const currentTaxYear = String(new Date().getFullYear() - 1);
+const currentTaxYear = String(new Date().getFullYear());
 
 const emptyForm: ClientForm = {
   primaryName: "",
@@ -1022,19 +1022,65 @@ function updateClientPhoto(client: Client, photoUrl: string) {
             }}
           >
             <div
-              style={{
-                fontSize: "12px",
-                fontWeight: 700,
-                opacity: 0.8,
-              }}
-            >
-              CURRENT TAX YEAR
-            </div>
+  style={{
+    position: "relative",
+    width: "190px",
+    textAlign: "center",
+  }}
+>
+  <div
+  style={{
+    position: "relative",
+    width: "100%",
+  }}
+>
+  <div
+  style={{
+    background: "white",
+    borderRadius: "14px",
+    padding: "14px 10px",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.08)",
+    textAlign: "center",
+    border: "1px solid #dbe7f5",
+  }}
+>
+  <div style={{ fontSize: "12px", fontWeight: 800, color: "#64748b" }}>
+    TAX YEAR
+  </div>
 
-            <div style={{ fontSize: "30px", fontWeight: 900 }}>
-              {currentTaxYear}
-            </div>
-          </div>
+  <div style={{ fontSize: "36px", fontWeight: 900, color: "#173b73" }}>
+    {currentTaxYear}
+  </div>
+
+  <div style={{ fontSize: "15px", fontWeight: 700, color: "#334155" }}>
+    SEPTEMBER 19
+  </div>
+
+  <div style={{ fontSize: "13px", marginTop: "4px", color: "#64748b" }}>
+    2026
+  </div>
+</div>
+
+  <div
+    style={{
+      position: "absolute",
+      left: "50%",
+      top: "66%",
+      transform: "translate(-50%, -50%)",
+      fontSize: "34px",
+      fontWeight: 900,
+      color: "#173b73",
+      background: "white",
+      padding: "2px 10px",
+      borderRadius: "8px",
+      lineHeight: 1,
+    }}
+  >
+    {currentTaxYear}
+  </div>
+</div>
+</div>
+</div>
         </section>
 
         <PixelAssistant mode="welcome" />
