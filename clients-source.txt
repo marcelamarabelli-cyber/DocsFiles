@@ -1,0 +1,379 @@
+const sampleClients: Client[] = [
+  {
+    id: "TD-0001",
+    primaryName: "Raquel Linderman",
+    spouseName: "",
+    businessName: "",
+    email: "RAQUEL.LINDERMAN@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0002",
+    primaryName: "Joseph Schmitt",
+    spouseName: "",
+    businessName: "",
+    email: "JSCHMITT73@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0003",
+   primaryName: "Marcela Marabelli",
+    spouseName: "",
+    businessName: "",
+    email: "MARCELA.MARABELLI@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0004",
+    primaryName: "Ralph Gentile",
+    spouseName: "",
+    businessName: "",
+    email: "RTGENTILE@YAHOO.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0005",
+    primaryName: "John Cunat",
+    spouseName: "",
+    businessName: "",
+    email: "CUNAT1951@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0006",
+    primaryName: "Karen Stabnau",
+    spouseName: "",
+    businessName: "",
+    email: "KRSS42@ICLOUD.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0007",
+    primaryName: "Linda Clair",
+    spouseName: "",
+    businessName: "",
+    email: "LINDACLAIR2004@YAHOO.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0008",
+    primaryName: "Lisa Cunat",
+    spouseName: "",
+    businessName: "",
+    email: "CUNAT1951@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0009",
+    primaryName: "Julia Hunter",
+    spouseName: "",
+    businessName: "",
+    email: "JULIA@CROSSPOINT.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0010",
+    primaryName: "Schuyler DeYoung",
+    spouseName: "",
+    businessName: "",
+    email: "NICKDEYOUNGNUMBERONE@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0011",
+    primaryName: "Mary DeYoung",
+    spouseName: "",
+    businessName: "",
+    email: "NICKDEYOUNGNUMBERONE@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0012",
+    primaryName: "Michael Kaufman",
+    spouseName: "",
+    businessName: "",
+    email: "MIKE52KAUFMAN@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0013",
+    primaryName: "Valerie Wagner-Deneault",
+    spouseName: "",
+    businessName: "",
+    email: "VDENEAULT@HOTMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0014",
+    primaryName: "Nicholas DeYoung",
+    spouseName: "",
+    businessName: "",
+    email: "NICKDEYOUNGNUMBERONE@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0015",
+    primaryName: "Reno Wofford",
+    spouseName: "",
+    businessName: "",
+    email: "SOLOJUGGERNAUT@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0016",
+    primaryName: "Clint Hilliard",
+    spouseName: "",
+    businessName: "",
+    email: "CEHILLIARD85@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0017",
+    primaryName: "Trevor Miller",
+    spouseName: "",
+    businessName: "",
+    email: "MILLERT3@HOTMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0018",
+    primaryName: "Peggy Metivier",
+    spouseName: "",
+    businessName: "",
+    email: "MSPEGERSON@YAHOO.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0019",
+    primaryName: "Brian Parks",
+    spouseName: "",
+    businessName: "",
+    email: "THUNDERROK@YAHOO.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0020",
+    primaryName: "Tristan DeYoung",
+    spouseName: "",
+    businessName: "",
+    email: "NICKDEYOUNGNUMBERONE@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0021",
+    primaryName: "Juergen Kneifel",
+    spouseName: "Kathy Kneifel",
+    businessName: "",
+    email: "JKNEIFEL@EVERETTCC.EDU",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "Completed",
+    notes: "Married filing jointly. Washington and Montana mixed-residency client.",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0022",
+    primaryName: "Catherine Dempsey",
+    spouseName: "",
+    businessName: "",
+    email: "TAXESDEAL@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "TD-0023",
+    primaryName: "Elise Linderman",
+    spouseName: "",
+    businessName: "",
+    email: "ELISE.LINDERMAN@GMAIL.COM",
+    phone: "",
+    clientType: "Individual",
+    taxYear: currentTaxYear,
+    status: "New",
+    notes: "",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+const statusOptions: ClientStatus[] = [
+  "New",
+  "Waiting for Documents",
+  "Documents Received",
+  "In Preparation",
+  "Ready for Review",
+  "Ready to File",
+  "Completed",
+];
+
+
+
+function getDisplayName(client: Client) {
+  if (client.clientType === "Business" && client.businessName.trim()) {
+    return client.businessName;
+  }
+
+  if (client.spouseName.trim()) {
+    return `${client.primaryName} & ${client.spouseName}`;
+  }
+
+  return client.primaryName;
+}
+
+function statusColor(status: ClientStatus) {
+  switch (status) {
+    case "Completed":
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+        border: "#86efac",
+      };
+
+    case "Ready to File":
+      return {
+        background: "#dbeafe",
+        color: "#1d4ed8",
+        border: "#93c5fd",
+      };
+
+    case "Ready for Review":
+      return {
+        background: "#f3e8ff",
+        color: "#7e22ce",
+        border: "#d8b4fe",
+      };
+
+    case "In Preparation":
+      return {
+        background: "#ffedd5",
+        color: "#c2410c",
+        border: "#fdba74",
+      };
+
+    case "Documents Received":
+      return {
+        background: "#cffafe",
+        color: "#0e7490",
+        border: "#67e8f9",
+      };
+
+    case "Waiting for Documents":
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+        border: "#fcd34d",
+      };
+
+    default:
+      return {
+        background: "#f1f5f9",
+        color: "#475569",
+        border: "#cbd5e1",
+      };
+  }
+}
+

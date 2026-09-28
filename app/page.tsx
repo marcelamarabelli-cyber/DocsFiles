@@ -28,7 +28,10 @@ import {
 } from "./lib/requestMatcher";
 
 const currentTaxYear = String(new Date().getFullYear());
-
+const currentDateLabel = new Date().toLocaleDateString("en-US", {
+  month: "long",
+  day: "numeric",
+}).toUpperCase();
 const emptyForm: ClientForm = {
   primaryName: "",
   spouseName: "",
@@ -513,19 +516,39 @@ async function createInvoice() {
     checkAdminAuth();
   }, []);
   useEffect(() => {
-    const savedClients = window.localStorage.getItem("docsfiles-clients");
+    async function loadClientsFromSupabase() {
+      const supabase = createSupabaseClient();
 
-    if (savedClients) {
-      try {
-        const parsedClients = JSON.parse(savedClients) as Client[];
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .order("created_at", { ascending: true });
 
-        if (Array.isArray(parsedClients) && parsedClients.length > 0) {
-          setClients(parsedClients);
-        }
-      } catch {
-        console.warn("DocsFiles could not read previously saved clients.");
+      if (error) {
+        console.error("DocsFiles could not load clients from Supabase:", error);
+        return;
+      }
+
+      if (data) {
+        const dbClients = data.map((row: any) => ({
+          id: row.id,
+          primaryName: row.primary_name ?? "",
+          spouseName: row.spouse_name ?? "",
+          businessName: row.business_name ?? "",
+          email: row.email ?? "",
+          phone: row.phone ?? "",
+          clientType: row.client_type ?? "Individual",
+          taxYear: row.tax_year ?? new Date().getFullYear(),
+          status: row.status ?? "New",
+          notes: row.notes ?? "",
+          createdAt: row.created_at ?? new Date().toISOString(),
+        }));
+
+        setClients(dbClients);
       }
     }
+
+    loadClientsFromSupabase();
   }, []);
 
   useEffect(() => {
@@ -1053,11 +1076,11 @@ function updateClientPhoto(client: Client, photoUrl: string) {
   </div>
 
   <div style={{ fontSize: "15px", fontWeight: 700, color: "#334155" }}>
-    SEPTEMBER 19
+    {currentDateLabel}
   </div>
 
   <div style={{ fontSize: "13px", marginTop: "4px", color: "#64748b" }}>
-    2026
+    {currentTaxYear}
   </div>
 </div>
 
