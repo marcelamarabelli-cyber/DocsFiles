@@ -815,24 +815,38 @@ function updateClientPhoto(client: Client, photoUrl: string) {
 
   setSelectedClient(updatedClient);
   
-}function chooseClientPhoto(client: Client) {
+async function chooseClientPhoto(client: Client) {
   const input = document.createElement("input");
   input.type = "file";
-  input.accept = "image/*";
+  input.accept = "image/jpeg,image/png,image/webp";
 
-  input.onchange = () => {
+  input.onchange = async () => {
     const file = input.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
+    const supabase = createSupabaseClient();
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${client.id}-${Date.now()}.${fileExt}`;
 
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        updateClientPhoto(client, reader.result);
-      }
-    };
+    const { error: uploadError } = await supabase.storage
+      .from("client-photos")
+      .upload(fileName, file, { upsert: true });
 
-    reader.readAsDataURL(file);
+    if (uploadError) {
+      alert(`Photo upload failed: ${uploadError.message}`);
+      return;
+    }
+
+    const { data } = await supabase.storage
+      .from("client-photos")
+      .createSignedUrl(fileName, 60 * 60 * 24 * 365);
+
+    if (!data?.signedUrl) {
+      alert("Photo uploaded, but the photo URL could not be created.");
+      return;
+    }
+
+    updateClientPhoto(client, data.signedUrl);
   };
 
   input.click();
