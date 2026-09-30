@@ -595,7 +595,15 @@ createdAt: row.created_at ?? new Date().toISOString(),
         typeFilter === "All" || client.clientType === typeFilter;
 
       return matchesSearch && matchesStatus && matchesType;
-    });
+   }).sort((a, b) => {
+  const getSortName = (client: Client) => {
+    const name = client.businessName || client.primaryName || "";
+    const parts = name.trim().split(/\s+/);
+    return parts.length > 1 ? parts[parts.length - 1] : name;
+  };
+
+  return getSortName(a).localeCompare(getSortName(b));
+});
   }, [clients, search, statusFilter, typeFilter]);
 
   const completedCount = clients.filter(
