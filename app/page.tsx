@@ -855,7 +855,17 @@ async function chooseClientPhoto(client: Client) {
       return;
     }
 
-    updateClientPhoto(client, data.signedUrl);
+const { error: photoSaveError } = await supabase
+  .from("clients")
+  .update({ photo_url: data.signedUrl })
+  .eq("id", client.id);
+
+if (photoSaveError) {
+  alert(`Photo saved to storage, but client record update failed: ${photoSaveError.message}`);
+  return;
+}
+
+updateClientPhoto(client, data.signedUrl);
   };
 
   input.click();
