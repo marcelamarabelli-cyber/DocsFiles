@@ -994,7 +994,7 @@ async function chooseClientPhoto(client: Client) {
                 setShowNewClient(true);
               }}
             >
-              ＋ New Client
+              + Add Client
             </button>
           </div>
         </div>
