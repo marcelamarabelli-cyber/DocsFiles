@@ -814,7 +814,7 @@ function updateClientPhoto(client: Client, photoUrl: string) {
   );
 
   setSelectedClient(updatedClient);
-  
+ } 
 async function chooseClientPhoto(client: Client) {
   const input = document.createElement("input");
   input.type = "file";
