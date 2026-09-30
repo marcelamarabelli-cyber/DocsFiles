@@ -541,7 +541,8 @@ async function createInvoice() {
           taxYear: row.tax_year ?? new Date().getFullYear(),
           status: row.status ?? "New",
           notes: row.notes ?? "",
-          createdAt: row.created_at ?? new Date().toISOString(),
+photoUrl: row.photo_url ?? "",
+createdAt: row.created_at ?? new Date().toISOString(),
         }));
 
         setClients(dbClients);
