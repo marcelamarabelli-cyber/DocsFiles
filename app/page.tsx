@@ -605,6 +605,19 @@ createdAt: row.created_at ?? new Date().toISOString(),
   return getSortName(a).localeCompare(getSortName(b));
 });
   }, [clients, search, statusFilter, typeFilter]);
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+const [letterFilter, setLetterFilter] = useState<string>("All");
+  const alphabetFilteredClients = useMemo(() => {
+  if (letterFilter === "All") return filteredClients;
+
+  return filteredClients.filter((client) => {
+    const name = client.businessName || client.primaryName || "";
+    const parts = name.trim().split(/\s+/);
+    const sortName = parts.length > 1 ? parts[parts.length - 1] : name;
+
+    return sortName.toUpperCase().startsWith(letterFilter);
+  });
+}, [filteredClients, letterFilter]);
 
   const completedCount = clients.filter(
     (client) => client.status === "Completed",
@@ -1338,6 +1351,42 @@ updateClientPhoto(client, data.signedUrl);
                 <option value="Business">Business</option>
               </select>
             </div>
+{/* Alphabet mini tabs */}
+<div
+  style={{
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "5px",
+    marginTop: "14px",
+    alignItems: "center",
+  }}
+>
+  {["All", ...alphabet].map((letter) => (
+    <button
+      key={letter}
+      type="button"
+      onClick={() => setLetterFilter(letter)}
+      style={{
+        minWidth: letter === "All" ? "42px" : "30px",
+        height: "30px",
+        padding: "0 8px",
+        borderRadius: "7px 7px 3px 3px",
+        border:
+          letterFilter === letter
+            ? "2px solid #2563eb"
+            : "1px solid #9ca3af",
+        background:
+          letterFilter === letter ? "#2563eb" : "#f3f4f6",
+        color: letterFilter === letter ? "#ffffff" : "#374151",
+        fontWeight: 700,
+        cursor: "pointer",
+      }}
+    >
+      {letter}
+    </button>
+  ))}
+</div>
+            
 
             <div
   style={{
@@ -1348,7 +1397,7 @@ updateClientPhoto(client, data.signedUrl);
     alignItems: "flex-start",
   }}
 >
-              {filteredClients.length === 0 ? (
+              {alphabetFilteredClients.length === 0 ? (
                 <div
                   style={{
                     textAlign: "center",
@@ -1369,7 +1418,7 @@ updateClientPhoto(client, data.signedUrl);
                   </p>
                 </div>
               ) : (
-                filteredClients.map((client) => {
+             alphabetFilteredClients.map((client) => {
                   const colors = statusColor(client.status);
                   const selected = selectedClient?.id === client.id;
 
