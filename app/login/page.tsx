@@ -53,7 +53,7 @@ if (code) {
     console.warn("PKCE exchange unavailable:", error.message);
   }
 }
-    }
+    
 
     // Older invite links that contain tokens in the URL hash
     if (
