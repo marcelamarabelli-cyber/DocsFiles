@@ -29,30 +29,30 @@ useEffect(() => {
     }
 
     // Password reset or PKCE invite link
-    if (code) {
-      const { data, error } =
-        await supabase.auth.exchangeCodeForSession(code);
+if (code) {
+  const { data, error } =
+    await supabase.auth.exchangeCodeForSession(code);
 
-      if (error) {
-        setMessage(error.message);
-        return;
-      }
+  if (!error && data.session) {
+    setEmail(data.session.user.email ?? "");
 
-      if (data.session) {
-        setEmail(data.session.user.email ?? "");
+    if (resetMode) {
+      setIsResetMode(true);
+      setMessage("Enter your new password.");
+    } else {
+      setIsInvited(true);
+      setMessage("Create your password to activate your DocsFiles account.");
+    }
 
-        if (resetMode) {
-          setIsResetMode(true);
-          setMessage("Enter your new password.");
-        } else {
-          setIsInvited(true);
-          setMessage(
-            "Create your password to activate your DocsFiles account."
-          );
-        }
+    return;
+  }
 
-        return;
-      }
+  // If the invite was opened on another device/browser,
+  // don't stop the page with the PKCE error.
+  if (error) {
+    console.warn("PKCE exchange unavailable:", error.message);
+  }
+}
     }
 
     // Older invite links that contain tokens in the URL hash
