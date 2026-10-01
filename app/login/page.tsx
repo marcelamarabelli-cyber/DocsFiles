@@ -59,7 +59,7 @@ if (code) {
     if (
       accessToken &&
       refreshToken &&
-      authType === "invite"
+     (authType === "invite" || authType === "recovery")
     ) {
       const { data, error } = await supabase.auth.setSession({
         access_token: accessToken,
@@ -71,13 +71,17 @@ if (code) {
         return;
       }
 
-      if (data.session) {
-        setIsInvited(true);
-        setEmail(data.session.user.email ?? "");
-        setMessage(
-          "Create your password to activate your DocsFiles account."
-        );
-      }
+     if (data.session) {
+  setEmail(data.session.user.email ?? "");
+
+  if (authType === "recovery") {
+    setIsResetMode(true);
+    setMessage("Enter your new password.");
+  } else {
+    setIsInvited(true);
+    setMessage("Create your password to activate your DocsFiles account.");
+  }
+}
     }
   };
 
