@@ -123,8 +123,7 @@ if (isInvited || isResetMode) {
     ? "Password updated successfully."
     : "Password created successfully."
 );
-  router.push(redirectTo);
-  router.refresh();
+ window.location.replace(redirectTo);
   return;
 }
   setMessage("Signing you in...");
