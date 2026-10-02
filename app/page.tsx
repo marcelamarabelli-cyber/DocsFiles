@@ -1002,8 +1002,26 @@ updateClientPhoto(client, data.signedUrl);
             >
               🏠 Dashboard
             </button>
-</div>
-           
+
+            <button
+              type="button"
+              style={{
+                ...buttonBase,
+                padding: "12px 18px",
+                background: "linear-gradient(135deg, #2563eb, #7c3aed)",
+                color: "white",
+                boxShadow: "0 8px 18px rgba(37, 99, 235, 0.22)",
+              }}
+              onClick={() => {
+                setMessage("");
+                setShowNewClient(true);
+              }}
+            >
+              + Add Client
+            </button>
+          </div>
+        </div>
+      </header>
 
       <div
         style={{
