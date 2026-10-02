@@ -1002,7 +1002,7 @@ updateClientPhoto(client, data.signedUrl);
             >
               🏠 Dashboard
             </button>
-
+</div>
            
 
       <div
