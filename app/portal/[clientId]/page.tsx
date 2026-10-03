@@ -186,12 +186,37 @@ loadSignedSignatures();
 
 }, [clientId, supabase]);
   useEffect(() => {
-    const clients = loadClients();
-    const matchingClient =
-      clients.find((currentClient) => currentClient.id === clientId) ?? null;
+  async function loadClient() {
+    const { data, error } = await supabase
+      .from("clients")
+      .select(
+        "client_code, primary_name, spouse_name, business_name, email, phone, client_type, tax_year, status, notes, created_at"
+      )
+      .eq("client_code", clientId)
+      .maybeSingle();
 
-    setClient(matchingClient);
-   
+    if (error) {
+      console.error("Could not load client:", error.message);
+      setClient(null);
+    } else if (data) {
+      setClient({
+        id: data.client_code,
+        primaryName: data.primary_name ?? "",
+        spouseName: data.spouse_name ?? "",
+        businessName: data.business_name ?? "",
+        email: data.email ?? "",
+        phone: data.phone ?? "",
+        clientType: data.client_type ?? "Individual",
+        taxYear: String(data.tax_year ?? 2026),
+        status: data.status ?? "New",
+        notes: data.notes ?? "",
+        photoUrl: "",
+        createdAt: data.created_at ?? new Date().toISOString(),
+      } as Client);
+    } else {
+      setClient(null);
+    }
+
     setDocuments(loadDocuments());
     setDocumentRequests(loadDocumentRequests());
 
@@ -201,7 +226,10 @@ loadSignedSignatures();
 
     setAccountantNotes(savedNotes ?? "");
     setLoaded(true);
-  }, [clientId]);
+  }
+
+  loadClient();
+}, [clientId, supabase]);
 
   useEffect(() => {
     if (loaded) {
