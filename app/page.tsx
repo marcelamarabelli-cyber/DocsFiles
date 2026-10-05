@@ -597,7 +597,10 @@ createdAt: row.created_at ?? new Date().toISOString(),
       return matchesSearch && matchesStatus && matchesType;
    }).sort((a, b) => {
   const getSortName = (client: Client) => {
-    const name = client.businessName || client.primaryName || "";
+  const name =
+  client.clientType === "Business"
+    ? client.businessName || client.primaryName || ""
+    : client.primaryName || client.businessName || "";
     const parts = name.trim().split(/\s+/);
     return parts.length > 1 ? parts[parts.length - 1] : name;
   };
