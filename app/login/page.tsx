@@ -31,7 +31,7 @@ useEffect(() => {
     // Password reset or PKCE invite link
 if (code) {
   const { data, error } =
-    await supabase.auth.exchangeCodeForSession(code);
+   await supabase.auth.exchangeCodeForSession(code.trim());
 
   if (!error && data.session) {
     setEmail(data.session.user.email ?? "");
@@ -49,9 +49,10 @@ if (code) {
 
   // If the invite was opened on another device/browser,
   // don't stop the page with the PKCE error.
-  if (error) {
-    console.warn("PKCE exchange unavailable:", error.message);
-  }
+ if (error) {
+  setMessage("Reset link error: " + error.message);
+  console.warn("PKCE exchange unavailable:", error.message);
+  return;
 }
     
 
