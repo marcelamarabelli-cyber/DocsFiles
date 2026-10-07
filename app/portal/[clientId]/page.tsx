@@ -523,14 +523,14 @@ loadSignedSignatures();
 
       <TaxWorkflow
         currentStatus={client.status}
-        onStatusChange={(status) => {
+       onStatusChange={isAdminUser ? (status) => {
           const nextClient = { ...client, status: status as Client["status"] };
           const nextClients = loadClients().map((savedClient) =>
             savedClient.id === client.id ? nextClient : savedClient,
           );
           saveClients(nextClients);
           setClient(nextClient);
-        }}
+      } : undefined}
       />
 {isAdminUser && (
  <>
