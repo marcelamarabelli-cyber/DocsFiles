@@ -94,6 +94,7 @@ const router = useRouter();
   const [notesSaved, setNotesSaved] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   const [activityRefreshKey, setActivityRefreshKey] = useState(0);
   const [signedSignatureCount, setSignedSignatureCount] = useState(0);
   const [signedSignatures, setSignedSignatures] = useState<any[]>([]);
@@ -531,7 +532,8 @@ loadSignedSignatures();
           setClient(nextClient);
         }}
       />
-
+{isAdminUser && (
+ <>
       <PreparerWorkpad
         clientId={client.id}
         clientName={getClientName(client)}
@@ -588,7 +590,8 @@ loadSignedSignatures();
           setActivityRefreshKey((current) => current + 1)
         }
       />
-
+    </>
+  )}
       <ActivityTimeline
         clientId={client.id}
         clientName={getClientName(client)}
