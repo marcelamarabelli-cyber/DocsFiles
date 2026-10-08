@@ -123,7 +123,7 @@ const adminEmail =
   process.env.NEXT_PUBLIC_DOCSFILES_ADMIN_EMAIL?.trim().toLowerCase();
 
 const isAdmin = !!adminEmail && signedInEmail === adminEmail;
-
+setIsAdminUser(isAdmin);
 const { data: access, error: accessError } = await supabase
   .from("client_access")
   .select("client_id")
