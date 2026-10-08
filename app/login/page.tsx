@@ -99,9 +99,11 @@ if (code) {
   return () => {
     subscription.unsubscribe();
   };
+   };
 }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+    event.preventDefault();
 
   if (!password.trim() || (!isInvited && !isResetMode && !email.trim())) {
   setMessage(
