@@ -1157,7 +1157,7 @@ background:
             ))}
           </div>
         </section>
-
+{isAdminUser && (
         <section
           style={{
             ...cardStyle,
@@ -1224,7 +1224,7 @@ background:
             }}
           />
         </section>
-
+)}
         <div
           style={{
             marginTop: "18px",
