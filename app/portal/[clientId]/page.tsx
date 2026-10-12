@@ -15,6 +15,7 @@ import CompletionCenter from "../../components/CompletionCenter";
 import PixelAssistant from "../../components/PixelAssistant";
 import DocumentPreview from "../../components/DocumentPreview";
   import ClientESignatures from "../../components/ClientESignatures";
+  import ClientMessages from "../../components/ClientMessages";
 
 import {
   documentFolders,
@@ -599,6 +600,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
+      <ClientMessages clientId={client.id} />
       <div
         style={{
           maxWidth: "1180px",
