@@ -192,7 +192,7 @@ loadSignedSignatures();
     const { data, error } = await supabase
       .from("clients")
       .select(
-        "client_code, primary_name, spouse_name, business_name, email, phone, client_type, tax_year, status, notes, created_at"
+       "id, client_code, primary_name, spouse_name, business_name, email, phone, client_type, tax_year, status, notes, created_at"
       )
       .eq("client_code", clientId)
       .maybeSingle();
@@ -203,6 +203,7 @@ loadSignedSignatures();
     } else if (data) {
       setClient({
         id: data.client_code,
+        uuid: data.id,
         primaryName: data.primary_name ?? "",
         spouseName: data.spouse_name ?? "",
         businessName: data.business_name ?? "",
@@ -600,7 +601,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
-      <ClientMessages clientId={client.id} />
+    <ClientMessages clientId={client.id} />
       <div
         style={{
           maxWidth: "1180px",
