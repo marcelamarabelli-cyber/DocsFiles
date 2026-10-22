@@ -579,7 +579,7 @@ createdAt: row.created_at ?? new Date().toISOString(),
         cloud.forEach(doc => merged.set(doc.id, doc));
         return [...merged.values()];
       });
-    }).catch(error => console.error("Cloud documents unavailable:", error));
+    }).catch(error => { console.error("Cloud documents unavailable:", error); if (active) window.alert("Unable to load cloud documents: " + String(error)); });
     return () => { active = false; };
   }, [adminVerified, selectedClient?.id]);
 
