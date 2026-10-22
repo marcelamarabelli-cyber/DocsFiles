@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient as createSupabaseClient } from "./utils/supabase/client";
 import FolderGrid from "./components/FolderGrid";
 import UploadZone from "./components/UploadZone";
+import { listCloudDocuments, updateCloudDocument } from "./lib/cloudDocuments";
 import RequestCenter from "./components/RequestCenter";
 import PixelAssistant from "./components/PixelAssistant";
 import {
@@ -567,6 +568,20 @@ createdAt: row.created_at ?? new Date().toISOString(),
   useEffect(() => {
     saveDocumentRequests(documentRequests);
   }, [documentRequests]);
+
+  useEffect(() => {
+    if (!adminVerified || !selectedClient?.id) return;
+    let active = true;
+    listCloudDocuments(selectedClient.id).then(cloud => {
+      if (!active) return;
+      setDocuments(current => {
+        const merged = new Map(current.map(doc => [doc.id, doc]));
+        cloud.forEach(doc => merged.set(doc.id, doc));
+        return [...merged.values()];
+      });
+    }).catch(error => console.error("Cloud documents unavailable:", error));
+    return () => { active = false; };
+  }, [adminVerified, selectedClient?.id]);
 
   useEffect(() => {
     saveDocuments(documents);
