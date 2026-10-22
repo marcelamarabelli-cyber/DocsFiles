@@ -435,6 +435,7 @@ export default function Home() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState("Waiting for administrator sign-in");
   const [openFolderId, setOpenFolderId] =
     useState<DocumentFolderId | null>(null);
   const [documentRequests, setDocumentRequests] =
@@ -577,6 +578,7 @@ createdAt: row.created_at ?? new Date().toISOString(),
       try {
         const cloud = await listCloudDocuments();
         if (!active) return;
+        setCloudSyncStatus(`Connected: ${cloud.length} cloud document(s) available`);
         setDocuments(current => {
           const merged = new Map(current.map(doc => [doc.id, doc]));
           cloud.forEach(doc => merged.set(doc.id, doc));
@@ -584,6 +586,7 @@ createdAt: row.created_at ?? new Date().toISOString(),
         });
       } catch (error) {
         console.error("Admin cloud sync failed:", error);
+        if (active) setCloudSyncStatus(`Cloud sync error: ${error instanceof Error ? error.message : String(error)}`);
       }
     };
     void refresh();
@@ -1692,6 +1695,7 @@ borderBottom: "none",
                 </select>
               </div>
 
+              <div role="status" style={{fontSize: "12px", padding: "8px", color: "#475569"}}>Admin cloud sync: {cloudSyncStatus}</div>
               <FolderGrid
                 folders={documentFolders}
                 documents={documents}
