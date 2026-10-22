@@ -601,7 +601,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
-   <ClientMessages clientId={client.uuid} />
+   {client.uuid ? <ClientMessages clientId={client.uuid} /> : <p>Messages are unavailable until this client record is linked.</p>}
       <div
         style={{
           maxWidth: "1180px",
