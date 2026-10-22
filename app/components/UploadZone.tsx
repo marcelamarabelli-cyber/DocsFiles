@@ -244,7 +244,7 @@ export default function UploadZone({
           type: file.type || "Unknown file type",
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          uploadedBy: "Preparer",
+          uploadedBy: window.location.pathname.startsWith("/portal/") ? "Client" : "Preparer",
           reviewed: false,
         };
 
