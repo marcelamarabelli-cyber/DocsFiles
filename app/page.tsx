@@ -425,6 +425,7 @@ function statusColor(status: ClientStatus) {
 
 export default function Home() {
  const [clients, setClients] = useState<Client[]>(sampleClients);
+  const [adminVerified, setAdminVerified] = useState(false);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -501,22 +502,24 @@ async function createInvoice() {
         return;
       }
 
-      const { data: access } = await supabase
-        .from("client_access")
-        .select("client_id")
+      const { data: admin, error: adminError } = await supabase
+        .from("admin_users")
+        .select("user_id")
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      if (access?.client_id) {
-        window.location.href = `/portal/${encodeURIComponent(access.client_id)}`;
+      if (adminError || !admin) {
+        window.location.href = "/login?redirect=/";
         return;
       }
+      setAdminVerified(true);
     };
 
     checkAdminAuth();
   }, []);
   useEffect(() => {
     async function loadClientsFromSupabase() {
+      if (!adminVerified) return;
       const supabase = createSupabaseClient();
 
       const { data, error } = await supabase
@@ -550,7 +553,7 @@ createdAt: row.created_at ?? new Date().toISOString(),
     }
 
     loadClientsFromSupabase();
-  }, []);
+  }, [adminVerified]);
 
   useEffect(() => {
     window.localStorage.setItem("docsfiles-clients", JSON.stringify(clients));
@@ -922,6 +925,8 @@ updateClientPhoto(client, data.signedUrl);
     fontSize: "13px",
     fontWeight: 700,
   };
+
+  if (!adminVerified) return <main aria-busy="true">Verifying administrator access…</main>;
 
   return (
     <main style={pageBackground}>
