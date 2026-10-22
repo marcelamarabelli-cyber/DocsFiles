@@ -2164,6 +2164,10 @@ window.open(loginUrl, "_blank", "noopener,noreferrer");
             setDocuments((current) => [...newDocuments, ...current])
           }
           onUpdateDocument={(documentId, updates) => {
+            void updateCloudDocument(documentId, updates).catch(error => {
+              console.error("Cloud document update failed:", error);
+              window.alert("Document changes could not be saved online. Please refresh and try again.");
+            });
             const existingDocument = documents.find(
               (document) => document.id === documentId,
             );
