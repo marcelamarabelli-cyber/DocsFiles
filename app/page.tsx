@@ -1556,6 +1556,11 @@ borderBottom: "none",
     {client.clientType} · Tax Year {client.taxYear}
   </div>
 
+  {/* Visible cloud document count on each client folder */}
+  <div style={{ marginBottom: "8px", fontSize: "12px", fontWeight: 800, color: "#1d4ed8" }}>
+    📁 {documents.filter((doc) => doc.clientId === client.id).length} file(s)
+  </div>
+
   {/* Status */}
   <span
     style={{
