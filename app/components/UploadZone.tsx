@@ -361,31 +361,8 @@ export default function UploadZone({
     });
   }
 
-  async function removeDocument(
-    document: StoredDocument,
-  ) {
-    const confirmed = window.confirm(
-      `Delete ${document.name}?`,
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    try {
-      await deleteDocumentFile(document.id);
-      onDeleteDocument(document.id);
-
-      if (previewDocumentItem?.id === document.id) {
-        setPreviewDocumentItem(null);
-      }
-    } catch (error) {
-      console.error("Unable to delete document:", error);
-
-      window.alert(
-        "DocsFiles could not delete this document. Please try again.",
-      );
-    }
+  async function removeDocument(_document: StoredDocument) {
+    window.alert("Document deletion is temporarily disabled while secure cloud deletion and recovery are configured.");
   }
 
   return (
