@@ -571,18 +571,25 @@ createdAt: row.created_at ?? new Date().toISOString(),
   }, [documentRequests]);
 
   useEffect(() => {
-    if (!adminVerified || !selectedClient?.id) return;
+    if (!adminVerified) return;
     let active = true;
-    listCloudDocuments(selectedClient.id).then(cloud => {
-      if (!active) return;
-      setDocuments(current => {
-        const merged = new Map(current.map(doc => [doc.id, doc]));
-        cloud.forEach(doc => merged.set(doc.id, doc));
-        return [...merged.values()];
-      });
-    }).catch(error => { console.error("Cloud documents unavailable:", error); if (active) window.alert("Unable to load cloud documents: " + String(error)); });
-    return () => { active = false; };
-  }, [adminVerified, selectedClient?.id]);
+    const refresh = async () => {
+      try {
+        const cloud = await listCloudDocuments();
+        if (!active) return;
+        setDocuments(current => {
+          const merged = new Map(current.map(doc => [doc.id, doc]));
+          cloud.forEach(doc => merged.set(doc.id, doc));
+          return [...merged.values()];
+        });
+      } catch (error) {
+        console.error("Admin cloud sync failed:", error);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [adminVerified]);
 
   useEffect(() => {
     saveDocuments(documents);
