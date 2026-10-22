@@ -1357,15 +1357,23 @@ background:
               return updatedRequests;
             });
           }}
-          onUpdateDocument={(documentId, updates) =>
+          onUpdateDocument={(documentId, updates) => {
+            if (!isAdminUser) {
+              window.alert("Only administrators can rename or review shared documents.");
+              return;
+            }
+            void updateCloudDocument(documentId, updates).catch(error => {
+              console.error("Cloud document update failed:", error);
+              window.alert("Unable to save document changes online.");
+            });
             setDocuments((current) =>
               current.map((document) =>
                 document.id === documentId
                   ? { ...document, ...updates }
                   : document,
               ),
-            )
-          }
+            );
+          }}
           onDeleteDocument={(documentId) =>
             setDocuments((current) =>
               current.filter((document) => document.id !== documentId),
