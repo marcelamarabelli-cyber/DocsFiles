@@ -3,11 +3,12 @@ import type { StoredDocument } from "../types/client";
 
 const BUCKET = "client-documents";
 
-export async function listCloudDocuments(clientId: string): Promise<StoredDocument[]> {
+export async function listCloudDocuments(clientId?: string): Promise<StoredDocument[]> {
   const supabase = createClient();
-  const { data, error } = await supabase.from("client_documents")
-    .select("id,client_id,folder_id,name,mime_type,size_bytes,uploaded_at,uploaded_by,reviewed")
-    .eq("client_id", clientId).order("uploaded_at", { ascending: false });
+  let query = supabase.from("client_documents")
+    .select("id,client_id,folder_id,name,mime_type,size_bytes,uploaded_at,uploaded_by,reviewed");
+  if (clientId) query = query.eq("client_id", clientId);
+  const { data, error } = await query.order("uploaded_at", { ascending: false });
   if (error) throw error;
   return (data ?? []).map(row => ({
     id: row.id, clientId: row.client_id, folderId: row.folder_id,
