@@ -1,3 +1,4 @@
+import { uploadCloudDocument, downloadCloudBlob } from "./cloudDocuments";
 import type {
   Client,
   DocumentRequest,
@@ -238,6 +239,7 @@ export async function saveDocumentFile(
   document: StoredDocument,
   file: File,
 ): Promise<void> {
+  await uploadCloudDocument(document, file);
   const database = await openDocumentDatabase();
 
   try {
@@ -288,6 +290,12 @@ export async function saveDocumentFile(
 export async function loadDocumentFile(
   documentId: string,
 ): Promise<Blob | null> {
+  try {
+    const remote = await downloadCloudBlob(documentId);
+    if (remote) return remote;
+  } catch (error) {
+    console.warn("Cloud file download unavailable; trying local backup:", error);
+  }
   const database = await openDocumentDatabase();
 
   try {

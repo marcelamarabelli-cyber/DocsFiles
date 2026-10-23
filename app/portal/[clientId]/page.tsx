@@ -3,6 +3,7 @@ import { createClient } from "../../utils/supabase/client";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import UploadZone from "../../components/UploadZone";
+import { listCloudDocuments, updateCloudDocument } from "../../lib/cloudDocuments";
 import ClientRequestChecklist from "../../components/ClientRequestChecklist";
 import ClientOverviewCard from "@/app/components/ClientOverviewCard";
 import TaxWorkflow from "../../components/TaxWorkflow";
@@ -245,6 +246,20 @@ loadSignedSignatures();
       saveDocumentRequests(documentRequests);
     }
   }, [documentRequests, loaded]);
+
+  useEffect(() => {
+    if (!authChecked || !loaded) return;
+    let active = true;
+    listCloudDocuments(clientId).then(cloud => {
+      if (!active) return;
+      setDocuments(current => {
+        const merged = new Map(current.map(doc => [doc.id, doc]));
+        cloud.forEach(doc => merged.set(doc.id, doc));
+        return [...merged.values()];
+      });
+    }).catch(error => console.error("Cloud documents unavailable:", error));
+    return () => { active = false; };
+  }, [authChecked, loaded, clientId]);
 
   const clientDocuments = useMemo(
     () =>
@@ -601,7 +616,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
-   <ClientMessages clientId={client.uuid} />
+   {client.uuid ? <ClientMessages clientId={client.uuid} /> : <p>Messages are unavailable until this client record is linked.</p>}
       <div
         style={{
           maxWidth: "1180px",
@@ -1342,15 +1357,23 @@ background:
               return updatedRequests;
             });
           }}
-          onUpdateDocument={(documentId, updates) =>
+          onUpdateDocument={(documentId, updates) => {
+            if (!isAdminUser) {
+              window.alert("Only administrators can rename or review shared documents.");
+              return;
+            }
+            void updateCloudDocument(documentId, updates).catch(error => {
+              console.error("Cloud document update failed:", error);
+              window.alert("Unable to save document changes online.");
+            });
             setDocuments((current) =>
               current.map((document) =>
                 document.id === documentId
                   ? { ...document, ...updates }
                   : document,
               ),
-            )
-          }
+            );
+          }}
           onDeleteDocument={(documentId) =>
             setDocuments((current) =>
               current.filter((document) => document.id !== documentId),

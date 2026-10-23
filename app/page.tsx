@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient as createSupabaseClient } from "./utils/supabase/client";
 import FolderGrid from "./components/FolderGrid";
 import UploadZone from "./components/UploadZone";
+import { listCloudDocuments, updateCloudDocument } from "./lib/cloudDocuments";
 import RequestCenter from "./components/RequestCenter";
 import PixelAssistant from "./components/PixelAssistant";
 import {
@@ -425,6 +426,7 @@ function statusColor(status: ClientStatus) {
 
 export default function Home() {
  const [clients, setClients] = useState<Client[]>(sampleClients);
+  const [adminVerified, setAdminVerified] = useState(false);
   const [form, setForm] = useState<ClientForm>(emptyForm);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
@@ -433,6 +435,7 @@ export default function Home() {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [message, setMessage] = useState("");
   const [documents, setDocuments] = useState<StoredDocument[]>([]);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState("Waiting for administrator sign-in");
   const [openFolderId, setOpenFolderId] =
     useState<DocumentFolderId | null>(null);
   const [documentRequests, setDocumentRequests] =
@@ -501,22 +504,24 @@ async function createInvoice() {
         return;
       }
 
-      const { data: access } = await supabase
-        .from("client_access")
-        .select("client_id")
+      const { data: admin, error: adminError } = await supabase
+        .from("admin_users")
+        .select("user_id")
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      if (access?.client_id) {
-        window.location.href = `/portal/${encodeURIComponent(access.client_id)}`;
+      if (adminError || !admin) {
+        window.location.href = "/login?redirect=/";
         return;
       }
+      setAdminVerified(true);
     };
 
     checkAdminAuth();
   }, []);
   useEffect(() => {
     async function loadClientsFromSupabase() {
+      if (!adminVerified) return;
       const supabase = createSupabaseClient();
 
       const { data, error } = await supabase
@@ -531,7 +536,8 @@ async function createInvoice() {
 
       if (data) {
         const dbClients = data.map((row: any) => ({
-          id: row.id,
+          id: row.client_code,
+          uuid: row.id,
           primaryName: row.primary_name ?? "",
           spouseName: row.spouse_name ?? "",
           businessName: row.business_name ?? "",
@@ -550,7 +556,7 @@ createdAt: row.created_at ?? new Date().toISOString(),
     }
 
     loadClientsFromSupabase();
-  }, []);
+  }, [adminVerified]);
 
   useEffect(() => {
     window.localStorage.setItem("docsfiles-clients", JSON.stringify(clients));
@@ -564,6 +570,29 @@ createdAt: row.created_at ?? new Date().toISOString(),
   useEffect(() => {
     saveDocumentRequests(documentRequests);
   }, [documentRequests]);
+
+  useEffect(() => {
+    if (!adminVerified) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const cloud = await listCloudDocuments();
+        if (!active) return;
+        setCloudSyncStatus(`Connected: ${cloud.length} cloud document(s) available`);
+        setDocuments(current => {
+          const merged = new Map(current.map(doc => [doc.id, doc]));
+          cloud.forEach(doc => merged.set(doc.id, doc));
+          return [...merged.values()];
+        });
+      } catch (error) {
+        console.error("Admin cloud sync failed:", error);
+        if (active) setCloudSyncStatus(`Cloud sync error: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { void refresh(); }, 5000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, [adminVerified]);
 
   useEffect(() => {
     saveDocuments(documents);
@@ -922,6 +951,8 @@ updateClientPhoto(client, data.signedUrl);
     fontSize: "13px",
     fontWeight: 700,
   };
+
+  if (!adminVerified) return <main aria-busy="true">Verifying administrator access…</main>;
 
   return (
     <main style={pageBackground}>
@@ -1525,6 +1556,11 @@ borderBottom: "none",
     {client.clientType} · Tax Year {client.taxYear}
   </div>
 
+  {/* Visible cloud document count on each client folder */}
+  <div style={{ marginBottom: "8px", fontSize: "12px", fontWeight: 800, color: "#1d4ed8" }}>
+    📁 {documents.filter((doc) => doc.clientId === client.id).length} file(s)
+  </div>
+
   {/* Status */}
   <span
     style={{
@@ -1664,6 +1700,7 @@ borderBottom: "none",
                 </select>
               </div>
 
+              <div role="status" style={{fontSize: "12px", padding: "8px", color: "#475569"}}>Admin cloud sync: {cloudSyncStatus}</div>
               <FolderGrid
                 folders={documentFolders}
                 documents={documents}
@@ -2144,6 +2181,10 @@ window.open(loginUrl, "_blank", "noopener,noreferrer");
             setDocuments((current) => [...newDocuments, ...current])
           }
           onUpdateDocument={(documentId, updates) => {
+            void updateCloudDocument(documentId, updates).catch(error => {
+              console.error("Cloud document update failed:", error);
+              window.alert("Document changes could not be saved online. Please refresh and try again.");
+            });
             const existingDocument = documents.find(
               (document) => document.id === documentId,
             );

@@ -50,6 +50,8 @@ export type StoredDocument = {
 
 export type Client = {
   id: string;
+  /** Database primary key, when loaded from Supabase. */
+  uuid?: string;
   primaryName: string;
   spouseName: string;
   businessName: string;
