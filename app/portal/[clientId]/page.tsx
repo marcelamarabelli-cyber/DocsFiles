@@ -601,7 +601,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
-   <ClientMessages clientId={client.uuid} />
+  <ClientMessages clientId={client.id} />
       <div
         style={{
           maxWidth: "1180px",
