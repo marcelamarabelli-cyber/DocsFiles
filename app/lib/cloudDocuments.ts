@@ -155,3 +155,22 @@ export async function deleteCloudDocument(documentId: string): Promise<void> {
   if (error) throw error;
   if (!data?.length) throw new Error("File removed but metadata deletion was denied; contact the administrator.");
 }
+
+/**
+ * Admin dashboard uses clients.id (UUID), while client_documents.client_id
+ * stores clients.client_code (for example TD-0002).
+ * Resolve the code through the clients table instead of guessing from UUID.
+ * Both queries remain subject to the current user's RLS policies.
+ */
+export async function listCloudDocumentsForClientUuid(clientUuid: string): Promise<StoredDocument[]> {
+  const supabase = createClient();
+  const { data: client, error } = await supabase
+    .from("clients")
+    .select("client_code")
+    .eq("id", clientUuid)
+    .single();
+  if (error || !client?.client_code) {
+    throw error ?? new Error("Client code not found or access denied.");
+  }
+  return listCloudDocuments(client.client_code);
+}
