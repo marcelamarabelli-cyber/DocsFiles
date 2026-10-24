@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient as createSupabaseClient } from "./utils/supabase/client";
 import FolderGrid from "./components/FolderGrid";
+import AdminCloudDocuments from "./components/AdminCloudDocuments";
 import UploadZone from "./components/UploadZone";
 import RequestCenter from "./components/RequestCenter";
 import PixelAssistant from "./components/PixelAssistant";
