@@ -1672,6 +1672,10 @@ borderBottom: "none",
                 onOpenFolder={setOpenFolderId}
               />
 
+              {selectedClient && (
+                <AdminCloudDocuments clientCode={(clients.find((c) => c.id === selectedClient.id) as Client & { clientCode?: string })?.clientCode ?? ""} />
+              )}
+
               <div
                 style={{
                   marginTop: "17px",
