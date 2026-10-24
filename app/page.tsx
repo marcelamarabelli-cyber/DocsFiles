@@ -533,6 +533,7 @@ async function createInvoice() {
       if (data) {
         const dbClients = data.map((row: any) => ({
           id: row.id,
+          clientCode: row.client_code ?? row.id,
           primaryName: row.primary_name ?? "",
           spouseName: row.spouse_name ?? "",
           businessName: row.business_name ?? "",
@@ -728,7 +729,7 @@ async function inviteExistingClient(client: Client) {
     return;
   }
 
-  const portalPath = `/portal/${client.id}`;
+  const portalPath = `/portal/${client.clientCode ?? client.id}`;
   const redirectTo = `${window.location.origin}/login?redirect=${encodeURIComponent(
     portalPath
   )}`;
@@ -1674,7 +1675,7 @@ borderBottom: "none",
               <FolderGrid
                 folders={documentFolders}
                 documents={documents}
-                clientId={selectedClient.id}
+                clientId={selectedClient.clientCode ?? selectedClient.id}
                 onOpenFolder={setOpenFolderId}
               />
 
@@ -1768,7 +1769,7 @@ borderBottom: "none",
                 <button
                   type="button"
                  onClick={() => {
-  const portalPath = `/portal/${selectedClient.id}`;
+  const portalPath = `/portal/${selectedClient.clientCode ?? selectedClient.id}`;
 const loginUrl = `/login?redirect=${encodeURIComponent(portalPath)}`;
 window.open(loginUrl, "_blank", "noopener,noreferrer");
 }}
@@ -2138,13 +2139,13 @@ window.open(loginUrl, "_blank", "noopener,noreferrer");
 
       {selectedClient && openFolderId && (
         <UploadZone
-          clientId={selectedClient.id}
+          clientId={selectedClient.clientCode ?? selectedClient.id}
           folder={
             documentFolders.find((folder) => folder.id === openFolderId)!
           }
           documents={documents.filter(
             (document) =>
-              document.clientId === selectedClient.id &&
+              document.clientId === (selectedClient.clientCode ?? selectedClient.id) &&
               document.folderId === openFolderId,
           )}
           onAddDocuments={(newDocuments) =>
