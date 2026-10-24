@@ -28,6 +28,7 @@ import {
   loadClients,
   loadDocumentRequests,
   loadDocuments,
+  loadSupabaseDocuments,
   saveClients,
   saveDocumentRequests,
   saveDocuments,
@@ -221,6 +222,12 @@ loadSignedSignatures();
     }
 
     setDocuments(loadDocuments());
+    void loadSupabaseDocuments(clientId).then((remoteDocuments) => {
+      setDocuments((current) => {
+        const remoteIds = new Set(remoteDocuments.map((document) => document.id));
+        return [...remoteDocuments, ...current.filter((document) => !remoteIds.has(document.id))];
+      });
+    }).catch((error) => console.error("Could not load remote documents:", error));
     setDocumentRequests(loadDocumentRequests());
 
     const savedNotes = window.localStorage.getItem(
@@ -601,7 +608,7 @@ loadSignedSignatures();
         refreshKey={activityRefreshKey}
       />
 
-  <ClientMessages clientId={client.id} />
+   <ClientMessages clientId={client.id} />
       <div
         style={{
           maxWidth: "1180px",
