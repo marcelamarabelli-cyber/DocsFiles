@@ -54,7 +54,8 @@ export async function uploadCloudDocument(
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw new Error("Please sign in before uploading.");
   // The server's RLS must independently enforce ownership of this clientId.
-  const path = `${document.clientId}/${document.id}/${encodeURIComponent(file.name)}`;
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120) || "document";
+  const path = `${encodeURIComponent(document.clientId)}/${document.id}/${safeName}`;
   const { error: uploadError } = await supabase.storage
     .from(BUCKET)
     .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
@@ -101,4 +102,33 @@ export async function getCloudDocumentUrl(documentId: string): Promise<string> {
     .createSignedUrl(row.storage_path, 60);
   if (urlError || !data) throw urlError ?? new Error("Could not open document.");
   return data.signedUrl;
+}
+
+/**
+ * Updates document metadata only. RLS must permit only the owning client or admin.
+ * The storage object's original filename/path is intentionally unchanged.
+ */
+export async function renameCloudDocument(documentId: string, name: string): Promise<void> {
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 255) throw new Error("Enter a valid document name.");
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("client_documents")
+    .update({ name: trimmed })
+    .eq("id", documentId)
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("Document not found or access denied.");
+}
+
+/** Only authorized preparers should be able to change review status (enforce in RLS). */
+export async function setCloudDocumentReviewed(documentId: string, reviewed: boolean): Promise<void> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("client_documents")
+    .update({ reviewed })
+    .eq("id", documentId)
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("Document not found or access denied.");
 }
