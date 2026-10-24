@@ -1,0 +1,104 @@
+import { createClient } from "../utils/supabase/client";
+import type { StoredDocument } from "../types/client";
+
+const BUCKET = "client-documents";
+
+type DocumentRow = {
+  id: string;
+  client_id: string;
+  folder_id: string;
+  name: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_at: string;
+  uploaded_by: string;
+  reviewed: boolean;
+  storage_path: string;
+};
+
+function toDocument(row: DocumentRow): StoredDocument {
+  return {
+    id: row.id,
+    clientId: row.client_id,
+    folderId: row.folder_id as StoredDocument["folderId"],
+    name: row.name,
+    type: row.mime_type,
+    size: row.size_bytes,
+    uploadedAt: row.uploaded_at,
+    uploadedBy: row.uploaded_by === "Preparer" ? "Preparer" : "Client",
+    reviewed: row.reviewed,
+  };
+}
+
+/**
+ * Cloud document operations. Requires matching RLS on public.client_documents
+ * AND storage.objects before being wired into the live portal.
+ * Never use service-role credentials in the browser.
+ */
+export async function listCloudDocuments(clientId: string): Promise<StoredDocument[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("client_documents")
+    .select("id,client_id,folder_id,name,mime_type,size_bytes,uploaded_at,uploaded_by,reviewed,storage_path")
+    .eq("client_id", clientId)
+    .order("uploaded_at", { ascending: false });
+  if (error) throw error;
+  return (data as DocumentRow[] ?? []).map(toDocument);
+}
+
+export async function uploadCloudDocument(
+  document: StoredDocument,
+  file: File,
+): Promise<StoredDocument> {
+  const supabase = createClient();
+  const { data: auth, error: authError } = await supabase.auth.getUser();
+  if (authError || !auth.user) throw new Error("Please sign in before uploading.");
+  // The server's RLS must independently enforce ownership of this clientId.
+  const path = `${document.clientId}/${document.id}/${encodeURIComponent(file.name)}`;
+  const { error: uploadError } = await supabase.storage
+    .from(BUCKET)
+    .upload(path, file, { contentType: file.type || "application/octet-stream", upsert: false });
+  if (uploadError) throw uploadError;
+
+  const row = {
+    id: document.id,
+    client_id: document.clientId,
+    folder_id: document.folderId,
+    name: document.name,
+    mime_type: file.type || "application/octet-stream",
+    size_bytes: file.size,
+    uploaded_at: document.uploadedAt,
+    uploaded_by: document.uploadedBy,
+    reviewed: false,
+    storage_path: path,
+    created_by: auth.user.id,
+  };
+
+  const { data, error } = await supabase
+    .from("client_documents")
+    .insert(row)
+    .select("id,client_id,folder_id,name,mime_type,size_bytes,uploaded_at,uploaded_by,reviewed,storage_path")
+    .single();
+  if (error) {
+    // Best-effort cleanup; Storage RLS may prevent deleting the orphan.
+    const { error: cleanupError } = await supabase.storage.from(BUCKET).remove([path]);
+    if (cleanupError) console.error("Cloud upload cleanup failed:", cleanupError.message);
+    throw error;
+  }
+  return toDocument(data as DocumentRow);
+}
+
+export async function getCloudDocumentUrl(documentId: string): Promise<string> {
+  const supabase = createClient();
+  const { data: row, error } = await supabase
+    .from("client_documents")
+    .select("storage_path")
+    .eq("id", documentId)
+    .single();
+  if (error || !row) throw error ?? new Error("Document not found.");
+  const { data, error: urlError } = await supabase.storage
+    .from(BUCKET)
+    .createSignedUrl(row.storage_path, 60);
+  if (urlError || !data) throw urlError ?? new Error("Could not open document.");
+  return data.signedUrl;
+}
