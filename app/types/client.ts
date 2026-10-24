@@ -46,10 +46,13 @@ export type StoredDocument = {
   uploadedBy: "Preparer" | "Client";
   reviewed: boolean;
   previewUrl?: string;
+  storagePath?: string;
+  source?: "supabase" | "browser";
 };
 
 export type Client = {
   id: string;
+  clientCode?: string;
   primaryName: string;
   spouseName: string;
   businessName: string;

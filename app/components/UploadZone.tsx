@@ -18,8 +18,10 @@ import {
   createDocumentPreviewUrl,
   deleteDocumentFile,
   downloadStoredDocument,
+  createSupabaseDocumentUrl,
+  deleteSupabaseDocument,
   formatFileSize,
-  saveDocumentFile,
+  uploadSupabaseDocument,
 } from "../lib/storage";
 
 type UploadZoneProps = {
@@ -249,8 +251,8 @@ export default function UploadZone({
         };
 
         try {
-          await saveDocumentFile(document, file);
-          savedDocuments.push(document);
+          const savedDocument = await uploadSupabaseDocument(document, file);
+          savedDocuments.push(savedDocument);
         } catch (error) {
           console.error(
             `Unable to save ${file.name}:`,
@@ -301,9 +303,9 @@ export default function UploadZone({
     document: StoredDocument,
   ) {
     try {
-      const previewUrl = await createDocumentPreviewUrl(
-        document.id,
-      );
+      const previewUrl = document.source === "supabase"
+        ? await createSupabaseDocumentUrl(document)
+        : await createDocumentPreviewUrl(document.id);
 
       if (!previewUrl) {
         window.alert(
@@ -329,8 +331,21 @@ export default function UploadZone({
     document: StoredDocument,
   ) {
     try {
-      const downloaded =
-        await downloadStoredDocument(document);
+      let downloaded = false;
+      if (document.source === "supabase") {
+        const url = await createSupabaseDocumentUrl(document);
+        if (url) {
+          const link = window.document.createElement("a");
+          link.href = url;
+          link.download = document.name;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.click();
+          downloaded = true;
+        }
+      } else {
+        downloaded = await downloadStoredDocument(document);
+      }
 
       if (!downloaded) {
         window.alert(
@@ -373,7 +388,11 @@ export default function UploadZone({
     }
 
     try {
-      await deleteDocumentFile(document.id);
+      if (document.source === "supabase") {
+        await deleteSupabaseDocument(document);
+      } else {
+        await deleteDocumentFile(document.id);
+      }
       onDeleteDocument(document.id);
 
       if (previewDocumentItem?.id === document.id) {
