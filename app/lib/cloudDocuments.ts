@@ -132,3 +132,26 @@ export async function setCloudDocumentReviewed(documentId: string, reviewed: boo
   if (error) throw error;
   if (!data?.length) throw new Error("Document not found or access denied.");
 }
+
+/** Delete a cloud file and its metadata. Requires both storage and table DELETE RLS. */
+export async function deleteCloudDocument(documentId: string): Promise<void> {
+  const supabase = createClient();
+  const { data: row, error: lookupError } = await supabase
+    .from("client_documents")
+    .select("storage_path")
+    .eq("id", documentId)
+    .single();
+  if (lookupError || !row) throw lookupError ?? new Error("Document not found or access denied.");
+  const { data: removed, error: storageError } = await supabase.storage
+    .from(BUCKET)
+    .remove([row.storage_path]);
+  if (storageError) throw storageError;
+  if (!removed?.length) throw new Error("File deletion was not confirmed.");
+  const { data, error } = await supabase
+    .from("client_documents")
+    .delete()
+    .eq("id", documentId)
+    .select("id");
+  if (error) throw error;
+  if (!data?.length) throw new Error("File removed but metadata deletion was denied; contact the administrator.");
+}
