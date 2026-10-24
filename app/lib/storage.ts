@@ -3,6 +3,7 @@ import type {
   DocumentRequest,
   StoredDocument,
 } from "../types/client";
+import { createClient } from "../utils/supabase/client";
 
 const CLIENTS_KEY = "docsfiles-clients";
 const DOCUMENTS_KEY = "docsfiles-documents";
@@ -162,6 +163,71 @@ export function saveDocumentRequests(
   } catch (error) {
     console.error("Unable to save document requests:", error);
   }
+}
+
+/* =========================================================
+   SUPABASE DOCUMENT STORAGE
+========================================================= */
+
+const DOCUMENT_BUCKET = "client-documents";
+
+function safeStorageName(name: string) {
+  return name.replace(/[^a-zA-Z0-9._-]+/g, "-").slice(0, 180);
+}
+
+export async function uploadSupabaseDocument(document: StoredDocument, file: File) {
+  const supabase = createClient();
+  const storagePath = `${document.clientId}/${document.folderId}/${document.id}-${safeStorageName(document.name)}`;
+  const { error: uploadError } = await supabase.storage.from(DOCUMENT_BUCKET).upload(storagePath, file, {
+    contentType: file.type || document.type,
+    upsert: false,
+  });
+  if (uploadError) throw uploadError;
+  const { error: metadataError } = await supabase.from("client_documents").insert({
+    id: document.id,
+    client_id: document.clientId,
+    folder_id: document.folderId,
+    name: document.name,
+    mime_type: file.type || document.type,
+    size_bytes: file.size,
+    storage_path: storagePath,
+    uploaded_at: document.uploadedAt,
+    uploaded_by: document.uploadedBy,
+    reviewed: document.reviewed,
+  });
+  if (metadataError) {
+    await supabase.storage.from(DOCUMENT_BUCKET).remove([storagePath]);
+    throw metadataError;
+  }
+  return { ...document, storagePath, source: "supabase" as const };
+}
+
+export async function loadSupabaseDocuments(clientId?: string): Promise<StoredDocument[]> {
+  const supabase = createClient();
+  let query = supabase.from("client_documents").select("id, client_id, folder_id, name, mime_type, size_bytes, storage_path, uploaded_at, uploaded_by, reviewed").order("uploaded_at", { ascending: false });
+  if (clientId) query = query.eq("client_id", clientId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id, clientId: row.client_id, folderId: row.folder_id, name: row.name,
+    type: row.mime_type, size: row.size_bytes, storagePath: row.storage_path,
+    uploadedAt: row.uploaded_at, uploadedBy: row.uploaded_by, reviewed: row.reviewed,
+    source: "supabase" as const,
+  }));
+}
+
+export async function createSupabaseDocumentUrl(document: StoredDocument) {
+  if (!document.storagePath) return null;
+  const { data, error } = await createClient().storage.from(DOCUMENT_BUCKET).createSignedUrl(document.storagePath, 300);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export async function deleteSupabaseDocument(document: StoredDocument) {
+  const supabase = createClient();
+  if (document.storagePath) await supabase.storage.from(DOCUMENT_BUCKET).remove([document.storagePath]);
+  const { error } = await supabase.from("client_documents").delete().eq("id", document.id);
+  if (error) throw error;
 }
 
 /* =========================================================
