@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { createClient as createSupabaseClient } from "./utils/supabase/client";
 import FolderGrid from "./components/FolderGrid";
+import AdminCloudDocuments from "./components/AdminCloudDocuments";
 import UploadZone from "./components/UploadZone";
 import RequestCenter from "./components/RequestCenter";
 import PixelAssistant from "./components/PixelAssistant";
@@ -532,6 +533,7 @@ async function createInvoice() {
       if (data) {
         const dbClients = data.map((row: any) => ({
           id: row.id,
+          clientCode: row.client_code ?? "",
           primaryName: row.primary_name ?? "",
           spouseName: row.spouse_name ?? "",
           businessName: row.business_name ?? "",
@@ -1670,6 +1672,10 @@ borderBottom: "none",
                 clientId={selectedClient.id}
                 onOpenFolder={setOpenFolderId}
               />
+
+              {selectedClient && (
+                <AdminCloudDocuments clientCode={(clients.find((c) => c.id === selectedClient.id) as Client & { clientCode?: string })?.clientCode ?? ""} />
+              )}
 
               <div
                 style={{

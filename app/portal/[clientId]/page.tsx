@@ -33,6 +33,7 @@ import {
   saveDocuments,
 } from "../../lib/storage";
 import { findMatchingRequest } from "../../lib/requestMatcher";
+import { listCloudDocuments } from "../../lib/cloudDocuments";
 import { addClientActivity } from "../../lib/activity";
 
 type DocumentWithDate = StoredDocument & {
@@ -220,7 +221,14 @@ loadSignedSignatures();
       setClient(null);
     }
 
-    setDocuments(loadDocuments());
+    // Cloud is authoritative for files. Never fall back to local browser data on an access error.
+    try {
+      const cloudDocuments = await listCloudDocuments(clientId);
+      setDocuments(cloudDocuments);
+    } catch (cloudError) {
+      console.error("Could not load cloud documents:", cloudError);
+      setDocuments([]);
+    }
     setDocumentRequests(loadDocumentRequests());
 
     const savedNotes = window.localStorage.getItem(
@@ -234,11 +242,7 @@ loadSignedSignatures();
   loadClient();
 }, [clientId, supabase]);
 
-  useEffect(() => {
-    if (loaded) {
-      saveDocuments(documents);
-    }
-  }, [documents, loaded]);
+  // Document metadata now comes from Supabase, not browser localStorage.
 
   useEffect(() => {
     if (loaded) {

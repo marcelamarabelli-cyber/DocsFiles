@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "../utils/supabase/client";
 import DocumentPreview from "./DocumentPreview";
+import { uploadCloudDocument, getCloudDocumentUrl, renameCloudDocument, setCloudDocumentReviewed, deleteCloudDocument } from "../lib/cloudDocuments";
 import type {
   DocumentFolder,
   StoredDocument,
@@ -244,13 +245,13 @@ export default function UploadZone({
           type: file.type || "Unknown file type",
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          uploadedBy: "Preparer",
+          uploadedBy: "Client",
           reviewed: false,
         };
 
         try {
-          await saveDocumentFile(document, file);
-          savedDocuments.push(document);
+          const cloudDocument = await uploadCloudDocument(document, file);
+          savedDocuments.push(cloudDocument);
         } catch (error) {
           console.error(
             `Unable to save ${file.name}:`,
@@ -301,9 +302,7 @@ export default function UploadZone({
     document: StoredDocument,
   ) {
     try {
-      const previewUrl = await createDocumentPreviewUrl(
-        document.id,
-      );
+      const previewUrl = await getCloudDocumentUrl(document.id);
 
       if (!previewUrl) {
         window.alert(
@@ -329,14 +328,18 @@ export default function UploadZone({
     document: StoredDocument,
   ) {
     try {
-      const downloaded =
-        await downloadStoredDocument(document);
-
-      if (!downloaded) {
-        window.alert(
-          "The permanent file could not be found. Please upload this document again.",
-        );
-      }
+      const url = await getCloudDocumentUrl(document.id);
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Download failed.");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = objectUrl;
+      link.download = document.name;
+      window.document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60000);
     } catch (error) {
       console.error("Unable to download document:", error);
 
@@ -346,7 +349,7 @@ export default function UploadZone({
     }
   }
 
-  function renameDocument(document: StoredDocument) {
+  async function renameDocument(document: StoredDocument) {
     const newName = window.prompt(
       "Enter the new document name:",
       document.name,
@@ -356,9 +359,13 @@ export default function UploadZone({
       return;
     }
 
-    onUpdateDocument(document.id, {
-      name: newName.trim(),
-    });
+    try {
+      await renameCloudDocument(document.id, newName.trim());
+      onUpdateDocument(document.id, { name: newName.trim() });
+    } catch (error) {
+      console.error("Unable to rename cloud document:", error);
+      window.alert("Could not rename document. Check your permissions.");
+    }
   }
 
   async function removeDocument(
@@ -373,7 +380,7 @@ export default function UploadZone({
     }
 
     try {
-      await deleteDocumentFile(document.id);
+      await deleteCloudDocument(document.id);
       onDeleteDocument(document.id);
 
       if (previewDocumentItem?.id === document.id) {
@@ -1004,7 +1011,7 @@ alert("PayPal approval link was not found.");
                       <button
                         type="button"
                         onClick={() =>
-                          renameDocument(document)
+                          void renameDocument(document)
                         }
                         style={{
                           padding: "9px 12px",
@@ -1023,14 +1030,15 @@ alert("PayPal approval link was not found.");
 
                       <button
                         type="button"
-                        onClick={() =>
-                          onUpdateDocument(
-                            document.id,
-                            {
-                              reviewed: !reviewed,
-                            },
-                          )
-                        }
+                        onClick={async () => {
+                          try {
+                            await setCloudDocumentReviewed(document.id, !reviewed);
+                            onUpdateDocument(document.id, { reviewed: !reviewed });
+                          } catch (error) {
+                            console.error("Unable to update review status:", error);
+                            window.alert("Only authorized preparers can review documents.");
+                          }
+                        }}
                         style={{
                           padding: "9px 12px",
                           border: reviewed
