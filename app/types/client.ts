@@ -52,6 +52,7 @@ export type StoredDocument = {
 
 export type Client = {
   id: string;
+  clientCode?: string;
   primaryName: string;
   spouseName: string;
   businessName: string;
