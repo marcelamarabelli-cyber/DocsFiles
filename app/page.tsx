@@ -533,6 +533,7 @@ async function createInvoice() {
       if (data) {
         const dbClients = data.map((row: any) => ({
           id: row.id,
+          clientCode: row.client_code ?? "",
           primaryName: row.primary_name ?? "",
           spouseName: row.spouse_name ?? "",
           businessName: row.business_name ?? "",
