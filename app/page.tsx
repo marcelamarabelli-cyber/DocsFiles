@@ -19,6 +19,7 @@ import {
 import {
   loadDocumentRequests,
   loadDocuments,
+  loadSupabaseDocuments,
   saveDocumentRequests,
   saveDocuments,
 } from "./lib/storage";
@@ -559,6 +560,12 @@ createdAt: row.created_at ?? new Date().toISOString(),
   useEffect(() => {
     setDocuments(loadDocuments());
     setDocumentRequests(loadDocumentRequests());
+    void loadSupabaseDocuments().then((remoteDocuments) => {
+      setDocuments((current) => {
+        const remoteIds = new Set(remoteDocuments.map((document) => document.id));
+        return [...remoteDocuments, ...current.filter((document) => !remoteIds.has(document.id))];
+      });
+    }).catch((error) => console.error("DocsFiles could not load remote documents:", error));
   }, []);
 
   useEffect(() => {
