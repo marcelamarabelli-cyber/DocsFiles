@@ -9,6 +9,7 @@ import {
 } from "react";
 import { createClient } from "../utils/supabase/client";
 import DocumentPreview from "./DocumentPreview";
+import { uploadCloudDocument, getCloudDocumentUrl } from "../lib/cloudDocuments";
 import type {
   DocumentFolder,
   StoredDocument,
@@ -244,13 +245,13 @@ export default function UploadZone({
           type: file.type || "Unknown file type",
           size: file.size,
           uploadedAt: new Date().toISOString(),
-          uploadedBy: "Preparer",
+          uploadedBy: "Client",
           reviewed: false,
         };
 
         try {
-          await saveDocumentFile(document, file);
-          savedDocuments.push(document);
+          const cloudDocument = await uploadCloudDocument(document, file);
+          savedDocuments.push(cloudDocument);
         } catch (error) {
           console.error(
             `Unable to save ${file.name}:`,
@@ -301,9 +302,7 @@ export default function UploadZone({
     document: StoredDocument,
   ) {
     try {
-      const previewUrl = await createDocumentPreviewUrl(
-        document.id,
-      );
+      const previewUrl = await getCloudDocumentUrl(document.id);
 
       if (!previewUrl) {
         window.alert(
